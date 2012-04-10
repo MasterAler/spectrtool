@@ -68,6 +68,7 @@ type
     N19: TMenuItem;
     N20: TMenuItem;
     ValueListSpectr: TValueListEditor;
+    N21: TMenuItem;
     procedure N1Click(Sender: TObject);
     procedure N7Click(Sender: TObject);
     procedure N8Click(Sender: TObject);
@@ -104,6 +105,9 @@ type
       Rect: TRect; State: TGridDrawState);
     procedure ValueListSpectrMouseDown(Sender: TObject;
       Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure ChartOutMouseMove(Sender: TObject; Shift: TShiftState; X,
+      Y: Integer);
+    procedure N21Click(Sender: TObject);
   private
     { Private declarations }
     procedure UpdateNums();
@@ -132,10 +136,11 @@ var
   K_first: single;
   GridComboN: TComboBox;
   mFrom,mTo : integer;
+  TraceChart: boolean;
 
 implementation
 
-uses Math, IniFiles;
+uses Math, IniFiles, TeCanvas;
 
 {$R *.dfm}
 
@@ -441,6 +446,7 @@ begin
  //----------
  mFrom:=1;
  mTo:=ValueListSpectr.RowCount-1;
+ TraceChart:=false;
 end;
 
 procedure TFrmMAIN.N3Click(Sender: TObject);
@@ -585,7 +591,7 @@ begin
       maxn:=-1;
       maxval:=-42.0;
 
-      prevval:=MaxDouble;
+      prevval:=Math.MaxDouble;
       prevup:=false;
       for k:=0 to ser.Count-1 do
        begin
@@ -738,7 +744,7 @@ begin
    ValueListSpectr.Canvas.Pen.Color:=clWhite;
    ValueListSpectr.Canvas.Font.Color:=clWhite;
    ValueListSpectr.Canvas.FillRect(Rect);
-   ValueListSpectr.Canvas.TextOut(Rect.Left+3,Rect.Top,ValueListSpectr.Cells[ACol,ARow]);
+   ValueListSpectr.Canvas.TextOut(Rect.Left+3,Rect.Top+2,ValueListSpectr.Cells[ACol,ARow]);
   end;
 end;
 
@@ -758,6 +764,41 @@ begin
    mFrom:=tmp2; mTo:=tmp1;
    ValueListSpectr.Invalidate;
   end;
+end;
+
+procedure TFrmMAIN.ChartOutMouseMove(Sender: TObject; Shift: TShiftState;
+  X, Y: Integer);
+var
+ i: integer;
+ xval,yval: double;
+begin
+ if (ChartOut.SeriesCount=0) or (not TraceChart) then Exit;
+ ChartOut.Repaint;
+ for i:=0 to ChartOut.SeriesCount-1 do
+  begin
+  end;
+ for i:=0 to ChartOut.SeriesCount-1 do
+  begin
+   if ChartOut.Series[i].GetCursorValueIndex<>-1 then
+    begin
+     with ChartOut.Canvas do
+      begin
+       Pen.Color:=clBlue;
+       Pen.Style:=psDash;
+       Font.Color:=clBlue;
+       Line(ChartOut.ChartRect.Left,Y,ChartOut.ChartRect.Right,Y);
+       Line(X,ChartOut.ChartRect.Top,X,ChartOut.ChartRect.Bottom);
+       ChartOut.Series[i].GetCursorValues(xval,yval);
+       TextOut(X+7,Y-TextHeight('X')-3,'X= '+FloatToStrF(xval,ffGeneral,6,2)+'  Y= '+inttostr(Round(yval)));
+      end;
+    end;
+  end;
+end;
+
+procedure TFrmMAIN.N21Click(Sender: TObject);
+begin
+ TraceChart:= not TraceChart;
+ N21.Checked:=TraceChart;
 end;
 
 end.

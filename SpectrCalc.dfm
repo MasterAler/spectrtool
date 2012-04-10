@@ -61,6 +61,7 @@ object FrmMAIN: TFrmMAIN
       Legend.LegendStyle = lsSeries
       Align = alClient
       TabOrder = 0
+      OnMouseMove = ChartOutMouseMove
     end
   end
   object Panel2: TPanel
@@ -232,6 +233,10 @@ object FrmMAIN: TFrmMAIN
       object N18: TMenuItem
         Caption = #1057#1082#1088#1099#1090#1100' '#1089#1090#1072#1090#1080#1089#1090#1080#1082#1091
         OnClick = N18Click
+      end
+      object N21: TMenuItem
+        Caption = #1058#1088#1072#1089#1089#1080#1088#1086#1074#1082#1072' '#1079#1085#1072#1095#1077#1085#1080#1081
+        OnClick = N21Click
       end
       object N12: TMenuItem
         Bitmap.Data = {
