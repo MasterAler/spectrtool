@@ -103,6 +103,8 @@ object FrmMAIN: TFrmMAIN
     OnEditButtonClick = ValueListSpectrEditButtonClick
     OnKeyPress = ValueListSpectrKeyPress
     OnMouseDown = ValueListSpectrMouseDown
+    OnMouseMove = ValueListSpectrMouseMove
+    OnMouseUp = ValueListSpectrMouseUp
     OnValidate = ValueListSpectrValidate
     ColWidths = (
       38

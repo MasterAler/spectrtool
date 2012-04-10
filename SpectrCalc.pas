@@ -19,6 +19,7 @@ const
  SettingFile='Coeffs.txt';
  CHMHelpFile='.\SpectrHelp.chm';
 type
+    TVLEDragType=(vleFrom,vleTo,vleNone);
     PeakPos=packed record
      x,y: real;
     end;
@@ -108,6 +109,10 @@ type
     procedure ChartOutMouseMove(Sender: TObject; Shift: TShiftState; X,
       Y: Integer);
     procedure N21Click(Sender: TObject);
+    procedure ValueListSpectrMouseUp(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure ValueListSpectrMouseMove(Sender: TObject; Shift: TShiftState;
+      X, Y: Integer);
   private
     { Private declarations }
     procedure UpdateNums();
@@ -118,6 +123,7 @@ type
     procedure ClearMarkData();
     procedure FindPeakValues();
     procedure UpdateSpectrStats();
+     procedure CMMouseLeave(var Msg: TMessage); message CM_MOUSELEAVE;
   public
     { Public declarations }
    procedure OnGetMarkText(Sender: TChartSeries; ValueIndex: Integer; var MarkText: String);
@@ -130,19 +136,38 @@ var
   Curves: TList;
   NextColor: TColor;
   delta : double;
-  MarkList: TList;    // хранит PeakData
-  PeakList: TList;    // хранит CurvePeaks
+  MarkList: TList;    // хранит PeakData, по этому можно расставить метки над пиками
+  PeakList: TList;    // хранит CurvePeaks, по этому можно строить кривые
   s_tag : integer;
   K_first: single;
   GridComboN: TComboBox;
   mFrom,mTo : integer;
   TraceChart: boolean;
+  isVLEdragging: boolean;
+  //кривой избыточный костыль, но так понятнее, где
+  //таскание и его проверки выглядят оптимальнее
+  VLEdrag: TVLEDragType; //чего тащим
+  vlePrevPos: integer;
 
 implementation
 
 uses Math, IniFiles, TeCanvas;
 
 {$R *.dfm}
+
+procedure TFrmMAIN.CMMouseLeave(var Msg: TMessage);
+begin
+  if (Msg.LParam = Integer(ValueListSpectr)) then
+   if isVLEdragging then
+    begin
+     if (VLEdrag=vleFrom) then mFrom:=vlePrevPos
+      else mTo:=vlePrevPos;
+     isVLEdragging:=false;
+     vlePrevPos:=-1;
+     VLEdrag:=vleNone;
+     ValueListSpectr.Invalidate;
+    end;
+end;
 
 //----------------------Combo handlers-----------------------------------------
 procedure TFrmMAIN.ComboNChange(Sender: TObject);
@@ -447,6 +472,9 @@ begin
  mFrom:=1;
  mTo:=ValueListSpectr.RowCount-1;
  TraceChart:=false;
+ isVLEdragging:=false;
+ VLEdrag:=vleNone;
+ vlePrevPos:=-1;
 end;
 
 procedure TFrmMAIN.N3Click(Sender: TObject);
@@ -751,19 +779,17 @@ end;
 procedure TFrmMAIN.ValueListSpectrMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 var
- cy, tmp1, tmp2: integer;
+ cy: integer;
 begin
- if (ssCtrl in Shift) and (Button=mbRight) then
-  begin
-   cy:=ValueListSpectr.MouseCoord(X,Y).Y;
-   if (cy=mFrom) or (cy=mTo) or (cy=0) then Exit;
-   if ( Abs(cy-mFrom) < Abs(cy-mTo) ) then mFrom:=cy
-   else mTo:=cy;
-   tmp1:=Max(mFrom,mTo);
-   tmp2:=Min(mFrom,mTo);
-   mFrom:=tmp2; mTo:=tmp1;
-   ValueListSpectr.Invalidate;
-  end;
+ ValueListSpectr.Invalidate;
+ cy:=ValueListSpectr.MouseCoord(X,Y).Y;
+ if (Button=mbLeft) and ((cy=mFrom) or (cy=mTo)) then
+    begin
+     isVLEdragging:=true;
+     if (cy=mFrom) then VLEdrag:=vleFrom
+     else VLEdrag:=vleTo;
+     vlePrevPos:=cy;
+    end;
 end;
 
 procedure TFrmMAIN.ChartOutMouseMove(Sender: TObject; Shift: TShiftState;
@@ -774,9 +800,6 @@ var
 begin
  if (ChartOut.SeriesCount=0) or (not TraceChart) then Exit;
  ChartOut.Repaint;
- for i:=0 to ChartOut.SeriesCount-1 do
-  begin
-  end;
  for i:=0 to ChartOut.SeriesCount-1 do
   begin
    if ChartOut.Series[i].GetCursorValueIndex<>-1 then
@@ -799,6 +822,58 @@ procedure TFrmMAIN.N21Click(Sender: TObject);
 begin
  TraceChart:= not TraceChart;
  N21.Checked:=TraceChart;
+end;
+
+procedure TFrmMAIN.ValueListSpectrMouseUp(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+var
+ cy, tmp1, tmp2: integer;
+begin
+ if isVLEdragging then
+  begin
+   isVLEdragging:=false;
+   cy:=ValueListSpectr.MouseCoord(X,Y).Y;
+   if (cy<=0) or (cy>=ValueListSpectr.RowCount) or (mFrom=mTo) then
+    begin
+     if (VLEdrag=vleFrom) then mFrom:=vlePrevPos
+      else mTo:=vlePrevPos;
+     isVLEdragging:=false;
+     vlePrevPos:=-1;
+     VLEdrag:=vleNone;
+     Exit;
+    end;
+   if (VLEdrag=vleFrom) then mFrom:=cy
+   else mTo:=cy;
+   vlePrevPos:=-1;
+   VLEdrag:=vleNone;
+   tmp1:=Max(mFrom,mTo);
+   tmp2:=Min(mFrom,mTo);
+   mFrom:=tmp2; mTo:=tmp1;
+   ValueListSpectr.Invalidate;
+  end;
+end;
+
+procedure TFrmMAIN.ValueListSpectrMouseMove(Sender: TObject;
+  Shift: TShiftState; X, Y: Integer);
+var
+ cy: integer;
+begin
+ if isVLEdragging then
+  begin
+   cy:=ValueListSpectr.MouseCoord(X,Y).Y;
+   if (cy<=0) or (cy>=ValueListSpectr.RowCount) then
+    begin
+     if (VLEdrag=vleFrom) then mFrom:=vlePrevPos
+      else mTo:=vlePrevPos;
+     isVLEdragging:=false;
+     vlePrevPos:=-1;
+     VLEdrag:=vleNone;
+     Exit;
+    end;
+   if (VLEdrag=vleFrom) then mFrom:=cy
+   else mTo:=cy;
+   ValueListSpectr.Invalidate;
+  end;
 end;
 
 end.
