@@ -13,7 +13,7 @@ object FrmChooser: TFrmChooser
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = False
-  OnClose = FormClose
+  OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
   object bbOK: TBitBtn
@@ -22,6 +22,7 @@ object FrmChooser: TFrmChooser
     Width = 57
     Height = 25
     TabOrder = 0
+    OnClick = bbOKClick
     Kind = bkOK
   end
   object bbCancel: TBitBtn
@@ -85,6 +86,19 @@ object FrmChooser: TFrmChooser
       Height = 13
       Caption = '*'
     end
+    object Label5: TLabel
+      Left = 148
+      Top = 17
+      Width = 8
+      Height = 16
+      Caption = 'K'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -13
+      Font.Name = 'MS Sans Serif'
+      Font.Style = []
+      ParentFont = False
+    end
     object cbOne: TComboBox
       Left = 16
       Top = 36
@@ -106,8 +120,9 @@ object FrmChooser: TFrmChooser
       Top = 35
       Width = 49
       Height = 22
-      Increment = 1.000000000000000000
+      Increment = 0.500000000000000000
       TabOrder = 2
+      Value = 1.000000000000000000
     end
   end
   object rbST: TRadioButton
@@ -118,6 +133,7 @@ object FrmChooser: TFrmChooser
     Checked = True
     TabOrder = 3
     TabStop = True
+    OnClick = rbFClick
   end
   object rbF: TRadioButton
     Left = 16
@@ -125,6 +141,7 @@ object FrmChooser: TFrmChooser
     Width = 17
     Height = 17
     TabOrder = 4
+    OnClick = rbFClick
   end
   object cbFunction: TComboBox
     Left = 48

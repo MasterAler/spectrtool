@@ -12,13 +12,15 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, Menus, ComCtrls, ExtCtrls, TeeProcs, TeEngine, Chart, StdCtrls,
-  Grids, ValEdit, ShellAPI, Series, ExtDlgs, CalcCurve, Settings, Chooser, XPMan;
+  Grids, ValEdit, ShellAPI, Series, ExtDlgs, CalcCurve, Settings, Chooser, Contnrs, XPMan;
 
 const
  TableFile='TableValues.txt';
  SettingFile='Coeffs.txt';
  CHMHelpFile='.\SpectrHelp.chm';
  AddColSign=' +';
+ StatActionArray: array [1..1] of string[7] = ('Average');
+ //список команд статистики можно расширять
 type
     TVLEDragType=(vleFrom,vleTo,vleNone);
     PeakPos=packed record
@@ -123,8 +125,11 @@ type
     procedure LoadTableValues();
     procedure SaveTableValues();
     procedure ClearMarkData();
+    procedure ClearPeakData();
     procedure FindPeakValues();
     procedure UpdateSpectrStats();
+    procedure FillCombo();
+    procedure CheckStatsValid();
     procedure CMMouseLeave(var Msg: TMessage); message CM_MOUSELEAVE;
   public
     { Public declarations }
@@ -151,8 +156,18 @@ var
   VLEdrag: TVLEDragType; //чего тащим
   vlePrevPos: integer;
   NAddStats: integer;
+  //------------------------------
+  //-------Буферные переменные----
+  statTypeData: string;
 
 implementation
+
+{
+    Ну да, если бы я не был ленивым мудилой, то отнаследовался бы в компонентах,
+    добавил туда методы, а логику вынес в человеческие классы и события...но увы,
+    изначально многое из функционала не подразумевалось, да и делается по-прежнему
+    на один раз, пускай пока так остается, а то Афонин О.Н. не дождется софта))
+}
 
 uses Math, IniFiles, TeCanvas;
 
@@ -188,13 +203,79 @@ begin
  SGStats.RowCount:=SGStats.RowCount+1;
  UpdateSpectrStats;
 end;
+
+procedure TFrmMAIN.FillCombo();
+var
+ i: integer;
+begin
+ GridComboN.Items.Clear;
+ for i:=mFrom to mTo do
+   GridComboN.Items.Add(inttostr(i));
+end;
 //-----------------------------------------------------------------------------
+
+procedure TFrmMAIN.CheckStatsValid();
+var
+ i,j: integer;
+ val: integer;
+begin
+ if (SGStats.Cells[0,1]='') then Exit;
+ i:=1;
+ while (i<SGStats.RowCount-1) do
+  begin
+   val:=StrToInt(SGStats.Cells[0,i]);
+   if not (val in [mFrom..mTo]) then
+    begin
+     for j:=i to SGStats.RowCount-1 do
+      SGStats.Rows[j]:=SGStats.Rows[j+1];
+     SGStats.RowCount:=SGStats.RowCount-1;
+    end
+   else Inc(i);
+  end;
+end;
+
+function RowAverage(row: TStrings; datalen: integer): real;
+var
+ i: integer;
+ avg: real;
+begin
+ avg:=0;
+ for i:=1 to datalen do
+   avg:= avg+StrToFloat(row[i]);
+ avg:=avg / datalen;
+ Result:=avg;
+end;
+
+procedure ParseSimpleFormula(formula: string; var A,B:integer; var K: real);
+var                 // simpleformula -  K*[A]/[B]
+ ps: Smallint;
+ buf: string;
+begin
+ ps:=Pos('[',formula);
+ buf:=Copy(formula,1,ps-2);
+ K:=StrToFloat(buf);
+ //---
+ Delete(formula,1,ps);
+ ps:=Pos(']',formula);
+ buf:=Copy(formula,1,ps-1);
+ A:=StrToInt(buf);
+ //---
+ ps:=Pos('[',formula);
+ Delete(formula,1,ps);
+ ps:=Pos(']',formula);
+ buf:=Copy(formula,1,ps-1);
+ B:=StrToInt(buf);
+end;
 
 procedure TFrmMAIN.UpdateSpectrStats();
 var
- i,j: integer;
+ i,j,l: integer;
  curp: PCurvePeaks;
  n_ln : integer;
+ actionstring: string;
+ a_i: integer;
+ aval,bval,k: real;
+ a,b : integer;
 begin
  if (PeakList.Count=0) or (SGStats.Cells[0,1]='') then Exit;
  SGStats.ColCount:=PeakList.Count+2+NAddStats;
@@ -203,11 +284,48 @@ begin
   begin
    curp:=PeakList[i];
    SGStats.Cells[i+1,0]:=curp^.Title;
-   for j:=1 to SGStats.RowCount-2 do   
+   for j:=1 to SGStats.RowCount-2 do
     begin
      n_ln:=strtoint(SGStats.Cells[0,j]);
-     SGStats.Cells[i+1,j]:=floattostr(curp^.points[n_ln-1].y);
+     //floattostrf(curp^.points[n_ln-1].y,ffGeneral,1,10)
+     SGStats.Cells[i+1,j]:=inttostr(Round(curp^.points[n_ln-1].y));
     end;
+  end;
+ //-----------Заполнение колонок статистики-----------------
+ //Система на данный момент с захардкоденными case-ветками, вариантов обрабатываемых
+ //действий ибо совсем мало и не ясно, будуь ли ещё
+ for i:=PeakList.Count+1 to SGStats.ColCount-2 do  //Для каждого стат-столбика
+  begin
+     //Ищем команду
+     a_i:=-1;
+     actionstring:=Trim(SGStats.Cells[i,0]);
+     for l:=Low(StatActionArray) to High(StatActionArray) do
+      if (actionstring=StatActionArray[l]) then
+       begin
+        a_i:=l; Break;
+       end;
+   for j:=1 to SGStats.RowCount-2 do   //По строчкам, кроме последней
+    begin
+     //Варианты
+     case a_i of
+      1:  //Average
+       begin
+        SGStats.Cells[i,j]:=IntToStr(Round(RowAverage(SGStats.Rows[j],SGStats.ColCount-NAddStats-2)));
+       end;
+      else // Formula
+       begin
+        ParseSimpleFormula(actionstring,a,b,k);
+        aval:=strtofloat(SGStats.Cells[a,j]);
+        bval:=strtofloat(SGStats.Cells[b,j]);
+        if bval<MinSingle then SGStats.Cells[i,j]:='NaN'
+        //Если  формула усложнится, проверку заменить на try-except
+        //Сравнивать real с нулем напрямую очкую :))
+        else SGStats.Cells[i,j]:=FloattoStrF(k*aval/bval,ffGeneral,5,10);
+       end;
+     end;
+       //----Конец перебора строчек----
+    end;
+   //----Конец перебора столбиков----
   end;
 end;
 
@@ -257,6 +375,17 @@ begin
    Dispose(MarkList.Items[i]);
   end;
  MarkList.Clear;
+end;
+
+procedure TFrmMAIN.ClearPeakData;
+var
+ i:integer;
+begin
+ for i:=0 to PeakList.Count-1 do
+  begin
+   Dispose(PeakList.Items[i]);
+  end;
+ PeakList.Clear;
 end;
 
 procedure TFrmMAIN.SaveTableValues;
@@ -445,13 +574,11 @@ begin
 end;
 
 procedure TFrmMAIN.FormCreate(Sender: TObject);
-var
- i:integer;
 begin
  Curves:=TList.Create;
  NextColor:=clRed;
  LoadTableValues;
- delta:=0.07;
+ delta:=0.075;
  MarkList:=TList.Create;
  PeakList:=TList.Create;
  s_tag:=0;
@@ -465,16 +592,13 @@ begin
  SGStats.DefaultRowHeight:=GridComboN.Height;
  GridComboN.Visible:=false;
  GridComboN.Style:=csDropDown;
- for i:=1 to ValueListSpectr.RowCount-1 do
-  begin
-   GridComboN.Items.Add(inttostr(i));
-  end;
  GridComboN.ItemIndex:=0;
  GridComboN.OnChange:=ComboNChange;
  GridComboN.OnExit:=ComboNExit;
  //----------
  mFrom:=1;
  mTo:=ValueListSpectr.RowCount-1;
+ FillCombo;
  TraceChart:=false;
  isVLEdragging:=false;
  VLEdrag:=vleNone;
@@ -584,8 +708,9 @@ procedure TFrmMAIN.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
  SaveTableValues;
  ClearMarkData;
- MarkList.Free;
- PeakList.Free;
+ ClearPeakData;
+ FreeAndNil(MarkList);
+ FreeAndNil(PeakList);
 end;
 
 procedure TFrmMAIN.N15Click(Sender: TObject);
@@ -668,6 +793,8 @@ begin
  //---для всех серий
  ChartOut.Repaint;
  FindPeakValues; //Уже конкретно точки
+ CheckStatsValid;
+ UpdateSpectrStats;
 end;
 
 procedure TFrmMAIN.N4Click(Sender: TObject);
@@ -735,6 +862,7 @@ begin
     R.Right := R.Right + SGStats.Left;
     R.Top := R.Top + SGStats.Top;
     R.Bottom := R.Bottom + SGStats.Top;
+    FillCombo;
     GridComboN.Left := R.Left + 2;
     GridComboN.Top := R.Top + 1;
     GridComboN.Width := (R.Right + 1) - R.Left;
@@ -849,6 +977,7 @@ begin
    tmp2:=Min(mFrom,mTo);
    mFrom:=tmp2; mTo:=tmp1;
    ValueListSpectr.Invalidate;
+   N14.Click;
   end;
 end;
 
@@ -885,7 +1014,11 @@ begin
  if SGStats.Cells[ACol,ARow]=AddColSign then
    if FrmChooser.ShowModal=mrOK then
     begin
-     ShowMessage('Заебок');
+     Inc(NAddStats);
+     SGStats.ColCount:=SGStats.ColCount+1;
+     SGStats.Cells[SGStats.ColCount-2,0]:=' '+statTypeData;
+     SGStats.Cells[SGStats.ColCount-1,0]:=AddColSign;
+     UpdateSpectrStats;
     end
    else MessageDlg('Ввод отменен',mtInformation,[mbOK],0);
 end;

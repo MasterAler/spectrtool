@@ -85,6 +85,12 @@ object FrmMAIN: TFrmMAIN
       TabOrder = 0
       OnMouseDown = SGStatsMouseDown
       OnSelectCell = SGStatsSelectCell
+      ColWidths = (
+        75
+        75
+        75
+        75
+        75)
     end
   end
   object ValueListSpectr: TValueListEditor
