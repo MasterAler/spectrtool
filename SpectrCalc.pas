@@ -38,6 +38,12 @@ type
     PFastLineSeries= ^TFastLineSeries;
     PPeakData= ^PeakData;
     PCurvePeaks= ^CurvePeaks;
+    //---------------------------
+     TSortPair=record
+      key: integer;
+      row: TStringList;
+     end;
+     PSortPair=^TSortPair;
   TFrmMAIN = class(TForm)
     MainMenu: TMainMenu;
     Af1: TMenuItem;
@@ -73,6 +79,7 @@ type
     N20: TMenuItem;
     ValueListSpectr: TValueListEditor;
     N21: TMenuItem;
+    N22: TMenuItem;
     procedure N1Click(Sender: TObject);
     procedure N7Click(Sender: TObject);
     procedure N8Click(Sender: TObject);
@@ -117,6 +124,7 @@ type
       X, Y: Integer);
     procedure SGStatsMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
+    procedure N22Click(Sender: TObject);
   private
     { Private declarations }
     procedure UpdateNums();
@@ -1021,6 +1029,61 @@ begin
      UpdateSpectrStats;
     end
    else MessageDlg('Ввод отменен',mtInformation,[mbOK],0);
+end;
+
+
+function ComparePairIntegers(Item1 : Pointer; Item2 : Pointer) : Integer;
+ var
+   num1, num2 : PSortPair;
+ begin
+   num1 := PSortPair(Item1);
+   num2 := PSortPair(Item2);
+
+  // Теперь сравнение строк
+   if      num1^.key > num2^.key
+   then Result := 1
+   else if num1^.key = num2^.key
+   then Result := 0
+   else Result := -1;
+ end;
+
+procedure GridSort(aSg : TStringGrid; const aCol : Integer);
+var
+  {SlSort,} SlRow : TStringList;
+  i, j : Integer;
+  item: PSortPair;
+  SlSort: TList;
+begin
+  //Сортируемый список.
+  SlSort := TList.Create;
+  //Добавляем в сортируемый список пары: "строка - объект".
+  for i := aSg.FixedRows to aSg.RowCount - 2 do begin
+    SlRow := TStringList.Create;
+    SlRow.Assign(aSg.Rows[i]);
+    //---------------
+    New(item);
+    item^.key:=strtoint(aSg.Cells[aCol, i]);
+    item^.row:=SlRow;
+    SlSort.Add(item);
+  end;
+  //Сортируем столбец.
+  SlSort.Sort(ComparePairIntegers);
+  j := 0;
+  for i := aSg.FixedRows to aSg.RowCount - 2 do
+   begin
+    SlRow := PSortPair(SlSort[j]).row;
+    aSg.Rows[i].Assign(SlRow);
+    SlRow.Free;
+    Dispose(PSortPair(SlSort[j]));
+    //Следующий индекс списка.
+    Inc(j);
+  end;   
+ SlSort.Free;
+end;
+
+procedure TFrmMAIN.N22Click(Sender: TObject);
+begin
+ GridSort(SGStats,0);
 end;
 
 end.
