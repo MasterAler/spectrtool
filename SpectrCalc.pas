@@ -12,12 +12,13 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, Menus, ComCtrls, ExtCtrls, TeeProcs, TeEngine, Chart, StdCtrls,
-  Grids, ValEdit, ShellAPI, Series, ExtDlgs, CalcCurve, Settings, XPMan;
+  Grids, ValEdit, ShellAPI, Series, ExtDlgs, CalcCurve, Settings, Chooser, XPMan;
 
 const
  TableFile='TableValues.txt';
  SettingFile='Coeffs.txt';
  CHMHelpFile='.\SpectrHelp.chm';
+ AddColSign=' +';
 type
     TVLEDragType=(vleFrom,vleTo,vleNone);
     PeakPos=packed record
@@ -99,7 +100,6 @@ type
     procedure N18Click(Sender: TObject);
     procedure SGStatsSelectCell(Sender: TObject; ACol, ARow: Integer;
       var CanSelect: Boolean);
-    procedure SGStatsDblClick(Sender: TObject);
     procedure N20Click(Sender: TObject);
     procedure N19Click(Sender: TObject);
     procedure ValueListSpectrDrawCell(Sender: TObject; ACol, ARow: Integer;
@@ -113,6 +113,8 @@ type
       Shift: TShiftState; X, Y: Integer);
     procedure ValueListSpectrMouseMove(Sender: TObject; Shift: TShiftState;
       X, Y: Integer);
+    procedure SGStatsMouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
   private
     { Private declarations }
     procedure UpdateNums();
@@ -123,7 +125,7 @@ type
     procedure ClearMarkData();
     procedure FindPeakValues();
     procedure UpdateSpectrStats();
-     procedure CMMouseLeave(var Msg: TMessage); message CM_MOUSELEAVE;
+    procedure CMMouseLeave(var Msg: TMessage); message CM_MOUSELEAVE;
   public
     { Public declarations }
    procedure OnGetMarkText(Sender: TChartSeries; ValueIndex: Integer; var MarkText: String);
@@ -148,6 +150,7 @@ var
   //таскание и его проверки выглядят оптимальнее
   VLEdrag: TVLEDragType; //чего тащим
   vlePrevPos: integer;
+  NAddStats: integer;
 
 implementation
 
@@ -194,7 +197,8 @@ var
  n_ln : integer;
 begin
  if (PeakList.Count=0) or (SGStats.Cells[0,1]='') then Exit;
- SGStats.ColCount:=PeakList.Count+1;
+ SGStats.ColCount:=PeakList.Count+2+NAddStats;
+ SGStats.Cells[SGStats.ColCount-1,0]:=AddColSign;
  for i:=0 to PeakList.Count-1 do
   begin
    curp:=PeakList[i];
@@ -475,6 +479,7 @@ begin
  isVLEdragging:=false;
  VLEdrag:=vleNone;
  vlePrevPos:=-1;
+ NAddStats:=0;
 end;
 
 procedure TFrmMAIN.N3Click(Sender: TObject);
@@ -739,12 +744,6 @@ begin
  CanSelect:=true;
 end;
 
-procedure TFrmMAIN.SGStatsDblClick(Sender: TObject);
-begin
- UpdateSpectrStats;
-end;
-
-
 procedure TFrmMAIN.N20Click(Sender: TObject);
 begin
  UpdateSpectrStats;
@@ -874,6 +873,21 @@ begin
    else mTo:=cy;
    ValueListSpectr.Invalidate;
   end;
+end;
+
+procedure TFrmMAIN.SGStatsMouseDown(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+var
+ ACol, ARow: integer;
+begin
+ SGStats.MouseToCell(X,Y,ACol,ARow);
+ if (ACol=-1) or (ARow=-1) then Exit;
+ if SGStats.Cells[ACol,ARow]=AddColSign then
+   if FrmChooser.ShowModal=mrOK then
+    begin
+     ShowMessage('Заебок');
+    end
+   else MessageDlg('Ввод отменен',mtInformation,[mbOK],0);
 end;
 
 end.

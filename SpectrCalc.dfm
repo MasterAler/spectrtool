@@ -83,7 +83,7 @@ object FrmMAIN: TFrmMAIN
       Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRowMoving, goRowSelect]
       PopupMenu = PopupMenuStats
       TabOrder = 0
-      OnDblClick = SGStatsDblClick
+      OnMouseDown = SGStatsMouseDown
       OnSelectCell = SGStatsSelectCell
     end
   end
