@@ -328,7 +328,7 @@ begin
         if bval<MinSingle then SGStats.Cells[i,j]:='NaN'
         //Если  формула усложнится, проверку заменить на try-except
         //Сравнивать real с нулем напрямую очкую :))
-        else SGStats.Cells[i,j]:=FloattoStrF(k*aval/bval,ffGeneral,5,10);
+        else SGStats.Cells[i,j]:=FloatToStrF(k*aval/bval,ffGeneral,5,10);
        end;
      end;
        //----Конец перебора строчек----
@@ -486,12 +486,6 @@ var
 begin
  if (not FileExists(filename)) then Exit;
  AssignFile(f,filename);
- Reset(f);
- while (not Eof(f) ) do
-  begin
-   Readln(f);
-  end;
- CloseFile(f);
  //---------------
  line:=TFastLineSeries.Create(nil);
  line.Clear;
@@ -640,8 +634,9 @@ procedure TFrmMAIN.ChartOutClickLegend(Sender: TCustomChart;
 begin
  if (Button=mbRight) then
   begin
-   ChartOut.Legend.Visible:=false;
-   N10.Caption:='Показать легенду';
+   if ChartOut.Legend.Alignment=laTop then
+    ChartOut.Legend.Alignment:=laRight
+   else ChartOut.Legend.Alignment:=laTop;
   end;
 end;
 

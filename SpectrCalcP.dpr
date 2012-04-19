@@ -1,11 +1,13 @@
 program SpectrCalcP;
 
 uses
+  FastMM4,
   Forms,
   SpectrCalc in 'SpectrCalc.pas' {FrmMAIN},
   CalcCurve in 'CalcCurve.pas' {FrmCurves},
   Settings in 'Settings.pas' {FrmSettings},
-  Chooser in 'Chooser.pas' {FrmChooser};
+  Chooser in 'Chooser.pas' {FrmChooser},
+  SpectrsReader in 'SpectrsReader.pas';
 
 {$R *.res}
 
