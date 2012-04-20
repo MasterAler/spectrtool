@@ -80,6 +80,7 @@ type
     ValueListSpectr: TValueListEditor;
     N21: TMenuItem;
     N22: TMenuItem;
+    N23: TMenuItem;
     procedure N1Click(Sender: TObject);
     procedure N7Click(Sender: TObject);
     procedure N8Click(Sender: TObject);
@@ -93,7 +94,6 @@ type
     procedure ChartOutClickLegend(Sender: TCustomChart;
       Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure N10Click(Sender: TObject);
-    procedure FormDestroy(Sender: TObject);
     procedure N12Click(Sender: TObject);
     procedure N11Click(Sender: TObject);
     procedure ChartOutClickSeries(Sender: TCustomChart;
@@ -125,11 +125,14 @@ type
     procedure SGStatsMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure N22Click(Sender: TObject);
+    procedure N23Click(Sender: TObject);
   private
     { Private declarations }
     procedure UpdateNums();
     procedure LoadDataFromTxt(filename : string);
-    procedure AddSeries();
+    procedure LoadDataFromSpectrs(filename : string);
+    //procedure AddSeries();
+    function  GenerateColor(Color:TColor):TColor;
     procedure LoadTableValues();
     procedure SaveTableValues();
     procedure ClearMarkData();
@@ -148,7 +151,6 @@ type
 
 var
   FrmMAIN: TFrmMAIN;
-  Curves: TList;
   NextColor: TColor;
   delta : double;
   MarkList: TList;    // хранит PeakData, по этому можно расставить метки над пиками
@@ -177,9 +179,52 @@ implementation
     на один раз, пускай пока так остается, а то Афонин О.Н. не дождется софта))
 }
 
-uses Math, IniFiles, TeCanvas;
+uses Math, IniFiles, TeCanvas, SpectrsReader;
 
 {$R *.dfm}
+
+procedure TFrmMAIN.LoadDataFromSpectrs(filename: string);
+var
+ i,j,k : integer;
+ reader: TSpectrsReader;
+ iCurveInfo: TCurveInfo;
+ x,y: real;
+ line : TFastLineSeries;
+begin
+ reader:=TSpectrsReader.Create;
+try
+ reader.Read(filename);
+ for i:=0 to reader.CurveCount-1 do
+  begin
+   iCurveInfo:=reader.GetCurveInfo(i);
+   //------непосредственно добавление точек-------------
+   for k:=0 to Length(iCurveInfo.PointsData.YValues)-1 do
+    begin
+     line:=TFastLineSeries.Create(nil);
+     line.Clear;
+     line.Title:=iCurveInfo.AttributeText;
+     line.LinePen.Color:=NextColor;
+     NextColor:=GenerateColor(NextColor);
+     for j:=0 to Length(iCurveInfo.PointsData.XValues)-1 do
+      begin
+        x:=iCurveInfo.PointsData.XValues[j];
+        y:=iCurveInfo.PointsData.YValues[k][j];
+        line.AddXY(x,y);
+      end;
+     line.Marks.Visible:=true;
+     line.OnGetMarkText:=OnGetMarkText;
+     line.Marks.Font.Size:=8;
+     line.Tag:=s_tag;
+     Inc(s_tag);
+     line.ParentChart:=ChartOut;
+    end;
+   //---------------------------------------------------
+  end;
+finally
+ reader.Free;
+ ChartOut.Repaint;
+end;
+end;
 
 procedure TFrmMAIN.CMMouseLeave(var Msg: TMessage);
 begin
@@ -391,7 +436,8 @@ var
 begin
  for i:=0 to PeakList.Count-1 do
   begin
-   Dispose(PeakList.Items[i]);
+   SetLength(PCurvePeaks(PeakList.Items[i])^.points,0);
+   Dispose(PCurvePeaks(PeakList.Items[i]));
   end;
  PeakList.Clear;
 end;
@@ -433,8 +479,8 @@ begin
  end;
 end;
 
-function GenerateColor(Color:TColor):TColor;
-var r, g, b: Byte; 
+function TFrmMAIN.GenerateColor(Color:TColor):TColor;
+var r, g, b: Byte;
 begin
    Randomize;
    Color:=ColorToRGB(Color);
@@ -445,19 +491,6 @@ begin
    g:=g+Random(2*MAXBYTE)-MAXBYTE;
    b:=b+Random(2*MAXBYTE)-MAXBYTE;
    result:=RGB(r,g,b);
-end;
-
-procedure TFrmMAIN.AddSeries();
-var
- i: integer;
- ser: TFastLineSeries;
-begin
- for i:=0 to Curves.Count-1 do
-  begin
-   ser:=PFastLineSeries(Curves.Items[i])^;
-   ser.ParentChart:=ChartOut;
-  end;
- ChartOut.Repaint;
 end;
 
 procedure TFrmMAIN.OnGetMarkText(Sender: TChartSeries; ValueIndex: Integer; var MarkText: String);
@@ -505,7 +538,8 @@ begin
  line.Tag:=s_tag;
  Inc(s_tag);
  CloseFile(f);
- Curves.Add(@line);
+ line.ParentChart:=ChartOut;
+ ChartOut.Repaint;
 end;
 
 procedure TFrmMAIN.UpdateNums;
@@ -577,7 +611,6 @@ end;
 
 procedure TFrmMAIN.FormCreate(Sender: TObject);
 begin
- Curves:=TList.Create;
  NextColor:=clRed;
  LoadTableValues;
  delta:=0.075;
@@ -586,6 +619,7 @@ begin
  s_tag:=0;
  K_first:=1.5;
  StatusMain.Panels[0].Text:='Погрешность: '+floattostr(delta);
+ StatusMain.Panels[1].Text:='Спектров загружено: 0';
  //-----------------
  SGStats.Cells[0,0]:=' N линии';
  GridComboN:=TComboBox.Create(Panel2);
@@ -614,10 +648,10 @@ begin
   begin
    ClearMarkData;
    ChartOut.SeriesList.Clear;
-   Curves.Clear;
-   LoadDataFromTxt(OpenFileDialog.FileName);
-   AddSeries();
+   if (OpenFileDialog.FilterIndex=1) then LoadDataFromTxt(OpenFileDialog.FileName)
+   else LoadDataFromSpectrs(OpenFileDialog.FileName);
    UpdateSpectrStats;
+   StatusMain.Panels[1].Text:='Спектров загружено: '+inttostr(ChartOut.SeriesCount);
   end
  else MessageDlg('Файл не выбран!',mtInformation,[mbOK],0);
 end;
@@ -647,11 +681,6 @@ begin
  ChartOut.Legend.Visible:= not ChartOut.Legend.Visible;
 end;
 
-procedure TFrmMAIN.FormDestroy(Sender: TObject);
-begin
- Curves.Free;
-end;
-
 procedure TFrmMAIN.N12Click(Sender: TObject);
 begin
  ChartOut.SeriesList.Clear;
@@ -665,9 +694,10 @@ begin
  if OpenFileDialog.Execute then
   begin
    ClearMarkData;
-   LoadDataFromTxt(OpenFileDialog.FileName);
-   AddSeries();
+   if (OpenFileDialog.FilterIndex=1) then   LoadDataFromTxt(OpenFileDialog.FileName)
+   else LoadDataFromSpectrs(OpenFileDialog.FileName);
    UpdateSpectrStats;
+   StatusMain.Panels[1].Text:='Спектров загружено: '+inttostr(ChartOut.SeriesCount);
   end
  else MessageDlg('Файл не выбран!',mtInformation,[mbOK],0);
 end;
@@ -689,6 +719,7 @@ begin
       end;
     end;
    Series.Free;
+   StatusMain.Panels[1].Text:='Спектров загружено: '+inttostr(ChartOut.SeriesCount);
   end;
 end;
 
@@ -714,6 +745,8 @@ begin
  ClearPeakData;
  FreeAndNil(MarkList);
  FreeAndNil(PeakList);
+ ChartOut.SeriesList.Clear;
+ FrmCurves.ChartCurves.SeriesList.Clear;
 end;
 
 procedure TFrmMAIN.N15Click(Sender: TObject);
@@ -1079,6 +1112,12 @@ end;
 procedure TFrmMAIN.N22Click(Sender: TObject);
 begin
  GridSort(SGStats,0);
+end;
+
+procedure TFrmMAIN.N23Click(Sender: TObject);
+begin
+ ChartOut.View3D:=not ChartOut.View3D;
+ N23.Checked:=not ChartOut.View3D;
 end;
 
 end.

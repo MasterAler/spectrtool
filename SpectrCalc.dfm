@@ -14,7 +14,6 @@ object FrmMAIN: TFrmMAIN
   OldCreateOrder = False
   OnClose = FormClose
   OnCreate = FormCreate
-  OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
   object Splitter1: TSplitter
@@ -33,6 +32,10 @@ object FrmMAIN: TFrmMAIN
     Panels = <
       item
         Text = #1055#1086#1075#1088#1077#1096#1085#1086#1089#1090#1100':'
+        Width = 150
+      end
+      item
+        Text = #1057#1087#1077#1082#1090#1088#1086#1074' '#1079#1072#1075#1088#1091#1078#1077#1085#1086': 0'
         Width = 50
       end>
   end
@@ -230,6 +233,10 @@ object FrmMAIN: TFrmMAIN
         Caption = #1050#1072#1083#1100#1082#1091#1083#1103#1090#1086#1088
         OnClick = N8Click
       end
+      object N23: TMenuItem
+        Caption = #1055#1083#1086#1089#1082#1080#1081' '#1074#1080#1076
+        OnClick = N23Click
+      end
       object N9: TMenuItem
         Caption = #1057#1082#1088#1099#1090#1100' '#1090#1072#1073#1083#1080#1094#1091' '#1083#1080#1085#1080#1081
         OnClick = N9Click
@@ -351,7 +358,9 @@ object FrmMAIN: TFrmMAIN
   end
   object OpenFileDialog: TOpenDialog
     DefaultExt = '*.txt'
-    Filter = #1058#1077#1082#1089#1090#1086#1074#1099#1077' '#1092#1072#1081#1083#1099' (*.txt)|*.txt'
+    Filter = 
+      #1058#1077#1082#1089#1090#1086#1074#1099#1077' '#1092#1072#1081#1083#1099' (*.txt)|*.txt|'#1060#1072#1081#1083#1099' '#1089#1087#1077#1082#1090#1088#1072' (*.spectrs)|*.spectr' +
+      's'
     Title = #1042#1099#1073#1077#1088#1080#1090#1077' '#1092#1072#1081#1083' '#1089#1087#1077#1082#1090#1088#1072
     Left = 240
     Top = 8

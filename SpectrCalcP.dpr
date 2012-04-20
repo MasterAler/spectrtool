@@ -1,7 +1,7 @@
 program SpectrCalcP;
 
 uses
-  FastMM4,
+  {FastMM4, }
   Forms,
   SpectrCalc in 'SpectrCalc.pas' {FrmMAIN},
   CalcCurve in 'CalcCurve.pas' {FrmCurves},

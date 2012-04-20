@@ -60,19 +60,23 @@ type
   procedure Clear();
  end;
 
- //PSingle=^Single;
- //PPSingle=^PSingle;
+ TSingleArray=array of Single;
+ TNx2SingleArray=array of array of Single;
+ TXYSpectrData=packed record
+  XValues: TSingleArray;
+  YValues: TNx2SingleArray;
+ end;
  TCurveData=class(TInterfacedObject,ICurveReader)
  private
   XValues: array of Single;
   YValues: array of array of Single;
   dwSize, dwCount, dwLayers: DWORD;
  public
+  function GetPointsData(): TXYSpectrData;
   procedure Read(handle: Cardinal);
   procedure Clear;
   constructor Create;
   destructor Destroy; override;
-  procedure Free;
  end;
 
  TStringAttribute=class(TInterfacedObject,ICurveReader)
@@ -88,7 +92,6 @@ type
   procedure Read(handle: Cardinal);
   constructor Create;
   destructor Destroy; override;
-  procedure Free;
   function ToString():string;
  end;
 
@@ -99,11 +102,11 @@ type
   function GetCount(): LongInt;
  public
   property Count: LongInt read GetCount;
+  function GetAttributesString(): string; virtual;
   procedure Read(handle: Cardinal);
   procedure Clear;
   constructor Create;
   destructor Destroy; override;
-  procedure Free;
  end;
 
  TStringPlugin=class(TInterfacedObject,ICurveReader)
@@ -116,7 +119,6 @@ type
   procedure Clear;
   constructor Create;
   destructor Destroy; override;
-  procedure Free;
  end;
 
  TPlugins=class(TInterfacedObject,ICurveReader)
@@ -128,22 +130,24 @@ type
   property Count : LongInt read GetCount;
   procedure Read(handle: Cardinal);
   procedure Clear;
-  constructor Create; 
-  procedure Free;
+  constructor Create;
   destructor Destroy; override;
  end;
 
- PCurve=^TCurve;
+ TCurveInfo=record
+  PointsData: TXYSpectrData;
+  AttributeText: string;
+ end;
  TCurve=class(TInterfacedObject,ICurveReader)
  private    //Обертка 3 в 1, не структура, так удобнее
   data: TCurveData;
   plugins: TPlugins;
   attribs: TAttribs;
  public
+  function GetCurveData(): TCurveInfo;
   procedure Read(handle: Cardinal);
   procedure Clear;
-  constructor Create; 
-  procedure Free;
+  constructor Create;
   destructor Destroy; override;
  end;
  //---------------------------------------------------------
@@ -151,10 +155,11 @@ type
  private
   Curves: TObjectList;
  public
+  function CurveCount: integer;
+  function GetCurveInfo(curveID: integer): TCurveInfo;
   procedure Read(filename: string);
   procedure Clear;
-  constructor Create; 
-  procedure Free;
+  constructor Create;
   destructor Destroy; override;
  end;
 
@@ -178,11 +183,6 @@ begin
  Curves.Clear;
  FreeAndNil(Curves);
  inherited;
-end;
-
-procedure TSpectrsReader.Free;
-begin
- if Self<>nil then Destroy;
 end;
 
 procedure TSpectrsReader.Read(filename: string);
@@ -220,7 +220,26 @@ begin
  Curves.Clear;
 end;
 
+function TSpectrsReader.CurveCount: integer;
+begin
+ Result:=Curves.Count;
+end;
+
+function TSpectrsReader.GetCurveInfo(curveID:integer):TCurveInfo;
+begin
+ Result:=TCurve(Curves[curveID]).GetCurveData;
+end;
+
 //----------------TCurve-----------------
+
+function TCurve.GetCurveData: TCurveInfo;
+var
+ info: TCurveInfo;
+begin
+ info.PointsData:=data.GetPointsData;
+ info.AttributeText:=attribs.GetAttributesString;
+ Result:=info;
+end;
 
 constructor TCurve.Create;
 begin
@@ -238,11 +257,6 @@ begin
  data.Free;
   plugins.Free;
   attribs.Free;
-end;
-
-procedure TCurve.Free;
-begin
- if Self<>nil then Destroy;
 end;
 
 procedure TCurve.Read(handle: Cardinal);
@@ -297,11 +311,6 @@ begin
  dwSize:=0;
 end;
 
-procedure TStringPlugin.Free;
-begin
- if Self<>nil then Destroy;
-end;
-
 //------------TPlugins--------------------
 
 function TPlugins.GetCount: LongInt;
@@ -320,12 +329,6 @@ begin
  Clear;
  inherited;
 end;
-
-procedure TPlugins.Free;
-begin
- if Self<>nil then Destroy;
-end;
-
 
 procedure TPlugins.Read(handle: Cardinal);
 var
@@ -364,26 +367,29 @@ var
  res : string;
  y,m,d: integer;
  h,mn,s: integer;
+ dt: TDateTime;
 begin
  case saType of
   ATTR_TYPE_INTEGER: res:=Inttostr(Integer(pData^));
   ATTR_TYPE_FLOAT: res:=floattostr(PSingle(pData)^);
-  ATTR_TYPE_STRING: res:=String(pData^);
+  ATTR_TYPE_STRING: res:=String(pData);
   ATTR_TYPE_DATE:
    begin
     y:=Integer((PDWORD(pData)^ and $FFFF0000)) shr 16;
     m:=(PDWORD(pData)^ and $0000FF00) shr 8;
     d:=PDWORD(pData)^ and $000000FF;
-    res:=inttostr(d)+'.'+inttostr(m)+'.'+inttostr(y);
+    dt:=EncodeDate(y,m,d);
+    res:=DateToStr(dt);
    end;
   ATTR_TYPE_TIME:
    begin
     h:=Integer((PDWORD(pData)^ and $FFFF0000)) shr 16;
     mn:=(PDWORD(pData)^ and $0000FF00) shr 8;
     s:=PDWORD(pData)^ and $000000FF;
-    res:=inttostr(h)+':'+inttostr(mn)+':'+inttostr(s);    
+    dt:=EncodeTime(h,mn,s,0);
+    res:=TimeToStr(dt);
    end
- else raise Exception.Create('Fucking magic attribute type');
+ else res:='';
  end;
  Result:=res;
 end;
@@ -391,19 +397,20 @@ end;
 procedure TStringAttribute.Read(handle: Cardinal);
 var
  dwRead,dwStrSize: DWORD;
- pName: array [1..500] of Char;
+ pName: array [1..50] of Char;
 begin
  Clear;
  ReadFile(handle,saType,4,dwRead,nil);
  ReadFile(handle,dwStrSize,4,dwRead,nil);
- ReadFile(handle,pName,dwStrSize,dwRead,nil);
- pName[dwStrSize]:=Char(0);
+ ReadFile(handle,pName[1],dwStrSize,dwRead,nil);
+ pName[dwStrSize+1]:=Char(0);
+ Name:=String(pName);
  ReadFile(handle,dwFlags,4,dwRead,nil);
  ReadFile(handle,dwSize,4,dwRead,nil);
  if (dwSize<>0) then
   begin
    GetMem(pData,dwSize);
-   ReadFile(handle,pData[1],dwSize,dwRead,nil);
+   ReadFile(handle,pData[0],dwSize,dwRead,nil);
   end;
 end;
 
@@ -436,12 +443,18 @@ begin
  inherited;
 end;
 
-procedure TStringAttribute.Free;
-begin
- if Self<>nil then Destroy;
-end;
-
 //--------------TAttribs---------------
+
+function TAttribs.GetAttributesString: string;
+var
+ aText: string;
+begin
+ aText:='';
+ aText:=aText+StringAttribs[10].ToString()+'  Дата:';
+ aText:=aText+StringAttribs[11].ToString()+'  Время:';
+ aText:=aText+StringAttribs[12].ToString();
+ Result:=aText;
+end;
 
 function TAttribs.GetCount(): LongInt;
 begin
@@ -489,12 +502,16 @@ begin
  inherited;
 end;
 
-procedure TAttribs.Free;
-begin
- if Self<>nil then Destroy;
-end;
-
 //-----------TCurveData----------------
+
+function TCurveData.GetPointsData: TXYSpectrData;
+var
+ data: TXYSpectrData;
+begin
+ data.XValues:=TSingleArray(XValues);
+ data.YValues:=TNx2SingleArray(YValues);
+ Result:=data;
+end;
 
 constructor TCurveData.Create;
 begin
@@ -517,11 +534,6 @@ begin
     SetLength(YValues[i],0);
    SetLength(YValues,0);
   end;
-end;
-
-procedure TCurveData.Free;
-begin
- if Self<>nil then Destroy; 
 end;
 
 procedure TCurveData.Read(handle: Cardinal);
