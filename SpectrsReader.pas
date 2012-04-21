@@ -14,7 +14,7 @@ interface
 }
 
 uses
- Windows, Contnrs, Messages, SysUtils, Classes;
+ Windows, Contnrs, Messages, SysUtils;
 
 const
  MAX_PLUGIN_COUNT=10;
@@ -397,7 +397,7 @@ end;
 procedure TStringAttribute.Read(handle: Cardinal);
 var
  dwRead,dwStrSize: DWORD;
- pName: array [1..50] of Char;
+ pName: array [1..70] of Char;
 begin
  Clear;
  ReadFile(handle,saType,4,dwRead,nil);
@@ -409,8 +409,17 @@ begin
  ReadFile(handle,dwSize,4,dwRead,nil);
  if (dwSize<>0) then
   begin
-   GetMem(pData,dwSize);
-   ReadFile(handle,pData[0],dwSize,dwRead,nil);
+   if  Pos('Комментарий',Name)<>0 then
+    begin
+     GetMem(pData,dwSize+1);
+     ReadFile(handle,pData[0],dwSize,dwRead,nil);
+     pData[dwSize]:=Char(0);
+    end
+   else
+    begin
+     GetMem(pData,dwSize);
+     ReadFile(handle,pData[0],dwSize,dwRead,nil);
+    end;
   end;
 end;
 
