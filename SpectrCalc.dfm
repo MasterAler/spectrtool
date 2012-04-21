@@ -1,9 +1,9 @@
 object FrmMAIN: TFrmMAIN
   Left = 192
   Top = 126
-  Width = 795
-  Height = 509
   Caption = #1059#1089#1090#1072#1085#1086#1074#1082#1072' "'#1058#1077#1095#1100'". '#1054#1073#1088#1072#1073#1086#1090#1095#1080#1082' '#1089#1087#1077#1082#1090#1088#1072
+  ClientHeight = 471
+  ClientWidth = 779
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -16,17 +16,18 @@ object FrmMAIN: TFrmMAIN
   OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
-  object Splitter1: TSplitter
+  object Separator: TSplitter
     Left = 0
-    Top = 357
+    Top = 377
     Width = 779
     Height = 3
     Cursor = crVSplit
     Align = alBottom
+    ExplicitTop = 357
   end
   object StatusMain: TStatusBar
     Left = 0
-    Top = 432
+    Top = 452
     Width = 779
     Height = 19
     Panels = <
@@ -43,25 +44,25 @@ object FrmMAIN: TFrmMAIN
     Left = 113
     Top = 0
     Width = 666
-    Height = 357
+    Height = 377
     Align = alClient
     TabOrder = 1
     object ChartOut: TChart
       Left = 1
       Top = 1
       Width = 664
-      Height = 355
-      AnimatedZoom = True
+      Height = 375
       BackWall.Brush.Color = clWhite
       BackWall.Brush.Style = bsClear
+      Legend.Alignment = laTop
+      Legend.LegendStyle = lsSeries
       Title.Text.Strings = (
         #1057#1087#1077#1082#1090#1088#1099)
       OnClickLegend = ChartOutClickLegend
       OnClickSeries = ChartOutClickSeries
       BottomAxis.Title.Caption = #1044#1083'.'#1074#1086#1083#1085#1099', '#1085#1084
       LeftAxis.Title.Caption = 'I,mA'
-      Legend.Alignment = laTop
-      Legend.LegendStyle = lsSeries
+      Zoom.Animated = True
       Align = alClient
       TabOrder = 0
       OnMouseMove = ChartOutMouseMove
@@ -69,7 +70,7 @@ object FrmMAIN: TFrmMAIN
   end
   object Panel2: TPanel
     Left = 0
-    Top = 360
+    Top = 380
     Width = 779
     Height = 72
     Align = alBottom
@@ -100,7 +101,7 @@ object FrmMAIN: TFrmMAIN
     Left = 0
     Top = 0
     Width = 113
-    Height = 357
+    Height = 377
     Align = alLeft
     KeyOptions = [keyEdit, keyAdd, keyDelete, keyUnique]
     Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goDrawFocusSelected, goColSizing, goEditing, goThumbTracking]
@@ -362,6 +363,7 @@ object FrmMAIN: TFrmMAIN
       #1058#1077#1082#1089#1090#1086#1074#1099#1077' '#1092#1072#1081#1083#1099' (*.txt)|*.txt|'#1060#1072#1081#1083#1099' '#1089#1087#1077#1082#1090#1088#1072' (*.spectrs)|*.spectr' +
       's'
     Title = #1042#1099#1073#1077#1088#1080#1090#1077' '#1092#1072#1081#1083' '#1089#1087#1077#1082#1090#1088#1072
+    OnTypeChange = OpenFileDialogTypeChange
     Left = 240
     Top = 8
   end

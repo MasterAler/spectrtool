@@ -71,7 +71,7 @@ type
     N16: TMenuItem;
     N17: TMenuItem;
     Panel2: TPanel;
-    Splitter1: TSplitter;
+    Separator: TSplitter;
     N18: TMenuItem;
     SGStats: TStringGrid;
     PopupMenuStats: TPopupMenu;
@@ -126,6 +126,7 @@ type
       Shift: TShiftState; X, Y: Integer);
     procedure N22Click(Sender: TObject);
     procedure N23Click(Sender: TObject);
+    procedure OpenFileDialogTypeChange(Sender: TObject);
   private
     { Private declarations }
     procedure UpdateNums();
@@ -203,8 +204,6 @@ try
      line:=TFastLineSeries.Create(nil);
      line.Clear;
      line.Title:=iCurveInfo.AttributeText;
-     line.LinePen.Color:=NextColor;
-     NextColor:=GenerateColor(NextColor);
      for j:=0 to Length(iCurveInfo.PointsData.XValues)-1 do
       begin
         x:=iCurveInfo.PointsData.XValues[j];
@@ -217,6 +216,8 @@ try
      line.Tag:=s_tag;
      Inc(s_tag);
      line.ParentChart:=ChartOut;
+     if (line.Color=clWhite) then line.Color:=clBlack;
+     if (line.Color=clBlack) and (line.Tag>0) then line.Color:=GenerateColor(line.Color);
     end;
    //---------------------------------------------------
   end;
@@ -511,6 +512,11 @@ begin
   end;
 end;
 
+procedure TFrmMAIN.OpenFileDialogTypeChange(Sender: TObject);
+begin
+ Assert((OpenFileDialog.FilterIndex>0) and (OpenFileDialog.FilterIndex<3));
+end;
+
 procedure TFrmMAIN.LoadDataFromTxt(filename : string);
 var
  f: TextFile;
@@ -523,8 +529,6 @@ begin
  line:=TFastLineSeries.Create(nil);
  line.Clear;
  line.Title:=ExtractFileName(filename);
- line.LinePen.Color:=NextColor;
- NextColor:=GenerateColor(NextColor);
  Reset(f);
  while (not Eof(f) )  do
   begin
@@ -539,6 +543,8 @@ begin
  Inc(s_tag);
  CloseFile(f);
  line.ParentChart:=ChartOut;
+ if (line.Color=clWhite) then line.Color:=clBlack;
+ if (line.Color=clRed) and (line.Tag>0) then line.Color:=GenerateColor(line.Color);
  ChartOut.Repaint;
 end;
 
@@ -883,7 +889,7 @@ begin
  if N18.Caption='Скрыть статистику' then N18.Caption:='Показать статистику'
   else N18.Caption:='Скрыть статистику';
  Panel2.Visible:= not Panel2.Visible;
- Splitter1.Visible:=not Splitter1.Visible;
+ Separator.Visible:=not Separator.Visible;
 end;
 
 procedure TFrmMAIN.SGStatsSelectCell(Sender: TObject; ACol, ARow: Integer;
