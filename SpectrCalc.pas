@@ -81,6 +81,7 @@ type
     N21: TMenuItem;
     N22: TMenuItem;
     N23: TMenuItem;
+    Origin1: TMenuItem;
     procedure N1Click(Sender: TObject);
     procedure N7Click(Sender: TObject);
     procedure N8Click(Sender: TObject);
@@ -127,6 +128,7 @@ type
     procedure N22Click(Sender: TObject);
     procedure N23Click(Sender: TObject);
     procedure OpenFileDialogTypeChange(Sender: TObject);
+    procedure Origin1Click(Sender: TObject);
   private
     { Private declarations }
     procedure UpdateNums();
@@ -517,6 +519,38 @@ begin
  Assert((OpenFileDialog.FilterIndex>0) and (OpenFileDialog.FilterIndex<3));
 end;
 
+procedure TFrmMAIN.Origin1Click(Sender: TObject);
+var
+ i,j : integer;
+ f : TextFile;
+ curp: PCurvePeaks;
+begin
+ if PeakList.Count=0 then Exit;
+ if (SaveDataDialog.Execute) then
+  begin
+   AssignFile(f,SaveDataDialog.FileName);
+   Rewrite(f);
+   Write(f,'lambda');
+   for i:=1 to PeakList.Count-1 do
+     Write(f,#9,'I',i);
+   Writeln(f);
+   curp:=PeakList[0];
+   for j:=0 to High(curp^.points)-1 do
+    begin
+     Write(f,curp^.points[j].x:5:2);
+     for i:=1 to PeakList.Count-1 do
+      begin
+       curp:=PeakList[i];
+       Write(f,#9,curp^.points[j].y:10:4);
+      end;
+     Writeln(f);
+     curp:=PeakList[0];
+    end;
+   CloseFile(f);
+  end
+ else MessageDlg('Сохранение не произведено!',mtInformation,[mbOK],0);
+end;
+
 procedure TFrmMAIN.LoadDataFromTxt(filename : string);
 var
  f: TextFile;
@@ -845,6 +879,7 @@ var
  f : TextFile;
  curp: PCurvePeaks;
 begin
+ if PeakList.Count=0 then Exit;
  if (SaveDataDialog.Execute) then
   begin
    AssignFile(f,SaveDataDialog.FileName);

@@ -2,7 +2,7 @@ object FrmMAIN: TFrmMAIN
   Left = 192
   Top = 126
   Caption = #1059#1089#1090#1072#1085#1086#1074#1082#1072' "'#1058#1077#1095#1100'". '#1054#1073#1088#1072#1073#1086#1090#1095#1080#1082' '#1089#1087#1077#1082#1090#1088#1072
-  ClientHeight = 471
+  ClientHeight = 491
   ClientWidth = 779
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -18,7 +18,7 @@ object FrmMAIN: TFrmMAIN
   TextHeight = 13
   object Separator: TSplitter
     Left = 0
-    Top = 377
+    Top = 397
     Width = 779
     Height = 3
     Cursor = crVSplit
@@ -27,7 +27,7 @@ object FrmMAIN: TFrmMAIN
   end
   object StatusMain: TStatusBar
     Left = 0
-    Top = 452
+    Top = 472
     Width = 779
     Height = 19
     Panels = <
@@ -39,19 +39,21 @@ object FrmMAIN: TFrmMAIN
         Text = #1057#1087#1077#1082#1090#1088#1086#1074' '#1079#1072#1075#1088#1091#1078#1077#1085#1086': 0'
         Width = 50
       end>
+    ExplicitTop = 452
   end
   object Panel1: TPanel
     Left = 113
     Top = 0
     Width = 666
-    Height = 377
+    Height = 397
     Align = alClient
     TabOrder = 1
+    ExplicitHeight = 377
     object ChartOut: TChart
       Left = 1
       Top = 1
       Width = 664
-      Height = 375
+      Height = 395
       BackWall.Brush.Color = clWhite
       BackWall.Brush.Style = bsClear
       Legend.Alignment = laTop
@@ -66,15 +68,18 @@ object FrmMAIN: TFrmMAIN
       Align = alClient
       TabOrder = 0
       OnMouseMove = ChartOutMouseMove
+      ExplicitLeft = 6
+      ExplicitTop = 0
     end
   end
   object Panel2: TPanel
     Left = 0
-    Top = 380
+    Top = 400
     Width = 779
     Height = 72
     Align = alBottom
     TabOrder = 2
+    ExplicitTop = 380
     object SGStats: TStringGrid
       Left = 1
       Top = 1
@@ -101,7 +106,7 @@ object FrmMAIN: TFrmMAIN
     Left = 0
     Top = 0
     Width = 113
-    Height = 377
+    Height = 397
     Align = alLeft
     KeyOptions = [keyEdit, keyAdd, keyDelete, keyUnique]
     Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goDrawFocusSelected, goColSizing, goEditing, goThumbTracking]
@@ -116,6 +121,7 @@ object FrmMAIN: TFrmMAIN
     OnMouseMove = ValueListSpectrMouseMove
     OnMouseUp = ValueListSpectrMouseUp
     OnValidate = ValueListSpectrValidate
+    ExplicitHeight = 377
     ColWidths = (
       38
       69)
@@ -175,6 +181,19 @@ object FrmMAIN: TFrmMAIN
           0007703077777777070770000000000000077777777777777777}
         Caption = #1057#1086#1093#1088#1072#1085#1080#1090#1100' '#1087#1080#1082#1080
         OnClick = N4Click
+      end
+      object Origin1: TMenuItem
+        Bitmap.Data = {
+          F6000000424DF600000000000000760000002800000010000000100000000100
+          04000000000080000000130B0000130B00001000000000000000000000000000
+          8000008000000080800080000000800080008080000080808000C0C0C0000000
+          FF0000FF000000FFFF00FF000000FF00FF00FFFF0000FFFFFF00333333333303
+          33333333333333903333333333333399033300000099999990330FFFF0999999
+          99030FFFF099999999900F00F099999999030FFFF099999990330F00FFFFF099
+          03330FFFFFFFF09033330F00F000000333330FFFF0FF033333330F08F0F03333
+          33330FFFF0033333333300000033333333333333333333333333}
+        Caption = #1069#1082#1089#1087#1086#1088#1090' '#1087#1080#1082#1086#1074' '#1074' Origin'
+        OnClick = Origin1Click
       end
       object N13: TMenuItem
         Bitmap.Data = {
@@ -373,6 +392,7 @@ object FrmMAIN: TFrmMAIN
     Filter = 
       'Bitmaps (*.bmp)|*.bmp|Enhanced Metafiles (*.emf)|*.emf|Metafiles' +
       ' (*.wmf)|*.wmf'
+    Options = [ofOverwritePrompt, ofHideReadOnly, ofEnableSizing]
     Title = #1057#1086#1093#1088#1072#1085#1080#1090#1100' '#1089#1087#1077#1082#1090#1088#1099' '#1082#1072#1082
     Left = 274
     Top = 9
