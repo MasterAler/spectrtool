@@ -15,15 +15,14 @@ type
     N5: TMenuItem;
     N6: TMenuItem;
     N1: TMenuItem;
-    Series1: TLineSeries;
+    Origin1: TMenuItem;
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure ChartCurvesClickSeries(Sender: TCustomChart;
       Series: TChartSeries; ValueIndex: Integer; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
-    procedure ChartCurvesGetLegendText(Sender: TCustomAxisPanel;
-      LegendStyle: TLegendStyle; Index: Integer; var LegendText: String);
     procedure N4Click(Sender: TObject);
     procedure N6Click(Sender: TObject);
+    procedure Origin1Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -90,12 +89,6 @@ begin
  if (Button=mbRight) then Series.Free;
 end;
 
-procedure TFrmCurves.ChartCurvesGetLegendText(Sender: TCustomAxisPanel;
-  LegendStyle: TLegendStyle; Index: Integer; var LegendText: String);
-begin
- //if (Index mod 2)<>0 then LegendText:='';
-end;
-
 procedure TFrmCurves.N4Click(Sender: TObject);
 begin
  Close();
@@ -112,6 +105,39 @@ begin
     3: ChartCurves.SaveToMetafile(FrmMain.SaveChartDialog.FileName);
     else MessageDlg('Сохранение не произведено!',mtInformation,[mbOK],0);
    end;
+  end
+ else MessageDlg('Сохранение не произведено!',mtInformation,[mbOK],0);
+end;
+
+procedure TFrmCurves.Origin1Click(Sender: TObject);
+var
+ i,j : integer;
+ f : TextFile;
+ line: TChartSeries;
+begin
+ if ChartCurves.SeriesCount=0 then Exit;
+ FrmMain.SaveDataDialog.FileName:='Curves.txt';
+ if (FrmMain.SaveDataDialog.Execute) then
+  begin
+   AssignFile(f,FrmMain.SaveDataDialog.FileName);
+   Rewrite(f);
+   Write(f,'F(K)');
+   for i:=1 to ChartCurves.SeriesCount-1 do
+     Write(f,#9,'LnZ':10,i);
+   Writeln(f);
+   line:=ChartCurves.Series[0];
+   for j:=0 to line.Count-1 do
+    begin
+     Write(f,line.XValue[j]:5:2);
+     for i:=1 to ChartCurves.SeriesCount-1 do
+      begin
+       line:=ChartCurves.Series[i];
+       Write(f,#9,line.YValue[j]:10:4);
+      end;
+     Writeln(f);
+     line:=ChartCurves.Series[0];
+    end;
+   CloseFile(f);
   end
  else MessageDlg('Сохранение не произведено!',mtInformation,[mbOK],0);
 end;

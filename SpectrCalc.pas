@@ -81,7 +81,6 @@ type
     N21: TMenuItem;
     N22: TMenuItem;
     N23: TMenuItem;
-    Origin1: TMenuItem;
     procedure N1Click(Sender: TObject);
     procedure N7Click(Sender: TObject);
     procedure N8Click(Sender: TObject);
@@ -128,7 +127,6 @@ type
     procedure N22Click(Sender: TObject);
     procedure N23Click(Sender: TObject);
     procedure OpenFileDialogTypeChange(Sender: TObject);
-    procedure Origin1Click(Sender: TObject);
   private
     { Private declarations }
     procedure UpdateNums();
@@ -519,38 +517,6 @@ begin
  Assert((OpenFileDialog.FilterIndex>0) and (OpenFileDialog.FilterIndex<3));
 end;
 
-procedure TFrmMAIN.Origin1Click(Sender: TObject);
-var
- i,j : integer;
- f : TextFile;
- curp: PCurvePeaks;
-begin
- if PeakList.Count=0 then Exit;
- if (SaveDataDialog.Execute) then
-  begin
-   AssignFile(f,SaveDataDialog.FileName);
-   Rewrite(f);
-   Write(f,'lambda');
-   for i:=1 to PeakList.Count-1 do
-     Write(f,#9,'I',i);
-   Writeln(f);
-   curp:=PeakList[0];
-   for j:=0 to High(curp^.points)-1 do
-    begin
-     Write(f,curp^.points[j].x:5:2);
-     for i:=1 to PeakList.Count-1 do
-      begin
-       curp:=PeakList[i];
-       Write(f,#9,curp^.points[j].y:10:4);
-      end;
-     Writeln(f);
-     curp:=PeakList[0];
-    end;
-   CloseFile(f);
-  end
- else MessageDlg('Сохранение не произведено!',mtInformation,[mbOK],0);
-end;
-
 procedure TFrmMAIN.LoadDataFromTxt(filename : string);
 var
  f: TextFile;
@@ -683,12 +649,20 @@ begin
 end;
 
 procedure TFrmMAIN.N3Click(Sender: TObject);
+var
+ ext: string;
 begin
  if OpenFileDialog.Execute then
   begin
+   ext:=ExtractFileExt(OpenFileDialog.FileName);
+   if (ext<>'.txt') and (ext<>'.spectrs') then
+    begin
+      MessageDlg('Неизвестный формат файла',mtError,[mbOK],0);
+      Exit;
+    end;
    ClearMarkData;
    ChartOut.SeriesList.Clear;
-   if (OpenFileDialog.FilterIndex=1) then LoadDataFromTxt(OpenFileDialog.FileName)
+   if (OpenFileDialog.FilterIndex=1) or (ext='.txt') then LoadDataFromTxt(OpenFileDialog.FileName)
    else LoadDataFromSpectrs(OpenFileDialog.FileName);
    UpdateSpectrStats;
    StatusMain.Panels[1].Text:='Спектров загружено: '+inttostr(ChartOut.SeriesCount);
@@ -730,11 +704,19 @@ begin
 end;
 
 procedure TFrmMAIN.N11Click(Sender: TObject);
+var
+ ext: string;
 begin
  if OpenFileDialog.Execute then
   begin
+   ext:=ExtractFileExt(OpenFileDialog.FileName);
+   if (ext<>'.txt') and (ext<>'.spectrs') then
+    begin
+      MessageDlg('Неизвестный формат файла',mtError,[mbOK],0);
+      Exit;
+    end;
    ClearMarkData;
-   if (OpenFileDialog.FilterIndex=1) then   LoadDataFromTxt(OpenFileDialog.FileName)
+   if (OpenFileDialog.FilterIndex=1) or (ext='.txt') then  LoadDataFromTxt(OpenFileDialog.FileName)
    else LoadDataFromSpectrs(OpenFileDialog.FileName);
    UpdateSpectrStats;
    StatusMain.Panels[1].Text:='Спектров загружено: '+inttostr(ChartOut.SeriesCount);
@@ -880,6 +862,7 @@ var
  curp: PCurvePeaks;
 begin
  if PeakList.Count=0 then Exit;
+ SaveDataDialog.FileName:='Peaks.txt';
  if (SaveDataDialog.Execute) then
   begin
    AssignFile(f,SaveDataDialog.FileName);
