@@ -459,9 +459,9 @@ var
  aText: string;
 begin
  aText:='';
- aText:=aText+StringAttribs[10].ToString()+'  Дата:';
- aText:=aText+StringAttribs[11].ToString()+'  Время:';
- aText:=aText+StringAttribs[12].ToString();
+ if (StringAttribs[10]<>nil) then aText:=aText+StringAttribs[10].ToString()+'  Дата:';
+ if (StringAttribs[11]<>nil) then  aText:=aText+StringAttribs[11].ToString()+'  Время:';
+ if (StringAttribs[12]<>nil) then  aText:=aText+StringAttribs[12].ToString();
  Result:=aText;
 end;
 

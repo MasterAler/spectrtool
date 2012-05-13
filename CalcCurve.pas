@@ -16,6 +16,7 @@ type
     N6: TMenuItem;
     N1: TMenuItem;
     Origin1: TMenuItem;
+    N2: TMenuItem;
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure ChartCurvesClickSeries(Sender: TCustomChart;
       Series: TChartSeries; ValueIndex: Integer; Button: TMouseButton;
@@ -23,6 +24,10 @@ type
     procedure N4Click(Sender: TObject);
     procedure N6Click(Sender: TObject);
     procedure Origin1Click(Sender: TObject);
+    procedure N2Click(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure ChartCurvesMouseMove(Sender: TObject; Shift: TShiftState; X,
+      Y: Integer);
   private
     { Private declarations }
   public
@@ -32,6 +37,7 @@ type
 
 var
   FrmCurves: TFrmCurves;
+  TraceCurves: boolean;
 
 implementation
 
@@ -60,7 +66,7 @@ begin
    line.Clear;
    curp:=PeakList[i];
    line.Title:=curp^.Title;
-   line.LinePen.Color:=curp^.color;
+   line.Color:=curp^.color;
    line.Pointer.Visible:=true;
    n:= Min(High(curp^.points),High(CoeffData));
    for j:=0 to n do
@@ -77,9 +83,40 @@ begin
  Result:=true;
 end;
 
+procedure TFrmCurves.ChartCurvesMouseMove(Sender: TObject; Shift: TShiftState;
+  X, Y: Integer);
+var
+ i: integer;
+ xval,yval: double;
+begin
+ if (ChartCurves.SeriesCount=0) or (not TraceCurves) then Exit;
+ ChartCurves.Repaint;
+ for i:=0 to ChartCurves.SeriesCount-1 do
+  begin
+   if ChartCurves.Series[i].GetCursorValueIndex<>-1 then
+    begin
+     with ChartCurves.Canvas do
+      begin
+       Pen.Color:=clBlue;
+       Pen.Style:=psDash;
+       Font.Color:=clBlue;
+       Line(ChartCurves.ChartRect.Left,Y,ChartCurves.ChartRect.Right,Y);
+       Line(X,ChartCurves.ChartRect.Top,X,ChartCurves.ChartRect.Bottom);
+       ChartCurves.Series[i].GetCursorValues(xval,yval);
+       TextOut(X+7,Y-TextHeight('X')-3,'X= '+FloatToStrF(xval,ffGeneral,6,2)+'  Y= '+inttostr(Round(yval)));
+      end;
+    end;
+  end;
+end;
+
 procedure TFrmCurves.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
  Action:=caHide;
+end;
+
+procedure TFrmCurves.FormCreate(Sender: TObject);
+begin
+ TraceCurves:=false;
 end;
 
 procedure TFrmCurves.ChartCurvesClickSeries(Sender: TCustomChart;
@@ -87,6 +124,12 @@ procedure TFrmCurves.ChartCurvesClickSeries(Sender: TCustomChart;
   Shift: TShiftState; X, Y: Integer);
 begin
  if (Button=mbRight) then Series.Free;
+end;
+
+procedure TFrmCurves.N2Click(Sender: TObject);
+begin
+ TraceCurves:= not TraceCurves;
+ N2.Checked:=TraceCurves;
 end;
 
 procedure TFrmCurves.N4Click(Sender: TObject);

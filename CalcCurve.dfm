@@ -14,6 +14,7 @@ object FrmCurves: TFrmCurves
   OldCreateOrder = False
   Position = poMainFormCenter
   OnClose = FormClose
+  OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
   object ChartCurves: TChart
@@ -33,7 +34,7 @@ object FrmCurves: TFrmCurves
     View3D = False
     Align = alClient
     TabOrder = 0
-    ExplicitHeight = 255
+    OnMouseMove = ChartCurvesMouseMove
   end
   object MenuCurves: TMainMenu
     Left = 8
@@ -67,6 +68,10 @@ object FrmCurves: TFrmCurves
     end
     object N1: TMenuItem
       Caption = #1054#1087#1094#1080#1080
+      object N2: TMenuItem
+        Caption = #1058#1088#1072#1089#1089#1080#1088#1086#1074#1082#1072' '#1079#1085#1072#1095#1077#1085#1080#1081
+        OnClick = N2Click
+      end
     end
   end
 end

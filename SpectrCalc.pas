@@ -17,7 +17,7 @@ uses
 const
  TableFile='TableValues.txt';
  SettingFile='Coeffs.txt';
- CHMHelpFile='.\SpectrHelp.chm';
+ CHMHelpFile='\SpectrHelp.chm';
  AddColSign=' +';
  StatActionArray: array [1..1] of string[7] = ('Average');
  //список команд статистики можно расширять
@@ -81,6 +81,9 @@ type
     N21: TMenuItem;
     N22: TMenuItem;
     N23: TMenuItem;
+    Origin1: TMenuItem;
+    N24: TMenuItem;
+    Origin2: TMenuItem;
     procedure N1Click(Sender: TObject);
     procedure N7Click(Sender: TObject);
     procedure N8Click(Sender: TObject);
@@ -127,6 +130,11 @@ type
     procedure N22Click(Sender: TObject);
     procedure N23Click(Sender: TObject);
     procedure OpenFileDialogTypeChange(Sender: TObject);
+    procedure Origin1Click(Sender: TObject);
+    procedure N24Click(Sender: TObject);
+    procedure SGStatsMouseMove(Sender: TObject; Shift: TShiftState; X,
+      Y: Integer);
+    procedure Origin2Click(Sender: TObject);
   private
     { Private declarations }
     procedure UpdateNums();
@@ -170,6 +178,8 @@ var
   //------------------------------
   //-------Буферные переменные----
   statTypeData: string;
+  //------------------------------
+  HRow,HCol : integer;
 
 implementation
 
@@ -244,6 +254,7 @@ end;
 //----------------------Combo handlers-----------------------------------------
 procedure TFrmMAIN.ComboNChange(Sender: TObject);
 begin
+ if (PeakList.Count=0) then Exit; 
  SGStats.Cells[0,SGStats.RowCount-1]:=GridComboN.Items[GridComboN.ItemIndex];
  GridComboN.Visible:=false;
  SGStats.SetFocus;
@@ -251,6 +262,7 @@ end;
 
 procedure TFrmMAIN.ComboNExit(Sender: TObject);
 begin
+ if (PeakList.Count=0) then Exit;
  SGStats.Cells[0,SGStats.RowCount-1]:=GridComboN.Items[GridComboN.ItemIndex];
  GridComboN.Visible:=false;
  SGStats.SetFocus;
@@ -337,7 +349,8 @@ begin
  for i:=0 to PeakList.Count-1 do
   begin
    curp:=PeakList[i];
-   SGStats.Cells[i+1,0]:=curp^.Title;
+   //SGStats.Cells[i+1,0]:=curp^.Title;
+   SGStats.Cells[i+1,0]:='   ['+inttostr(i+1)+']';
    for j:=1 to SGStats.RowCount-2 do
     begin
      n_ln:=strtoint(SGStats.Cells[0,j]);
@@ -517,6 +530,60 @@ begin
  Assert((OpenFileDialog.FilterIndex>0) and (OpenFileDialog.FilterIndex<3));
 end;
 
+procedure TFrmMAIN.Origin1Click(Sender: TObject);
+var
+ i,j : integer;
+ f : TextFile;
+ curp: PCurvePeaks;
+begin
+ if PeakList.Count=0 then Exit;
+ SaveDataDialog.FileName:='PeaksForOrigin.txt';
+ if (SaveDataDialog.Execute) then
+  begin
+   AssignFile(f,SaveDataDialog.FileName);
+   Rewrite(f);
+   Write(f,'lambda');
+   for i:=0 to PeakList.Count-1 do
+     Write(f,#9,'I',i+1);
+   Writeln(f);
+   curp:=PeakList[0];
+   for j:=0 to High(curp^.points)-1 do
+    begin
+     Write(f,curp^.points[j].x:5:2);
+     for i:=0 to PeakList.Count-1 do
+      begin
+       curp:=PeakList[i];
+       Write(f,#9,curp^.points[j].y:10:4);
+      end;
+     Writeln(f);
+     curp:=PeakList[0];
+    end;
+   CloseFile(f);
+  end
+ else MessageDlg('Сохранение не произведено!',mtInformation,[mbOK],0);
+end;
+
+procedure TFrmMAIN.Origin2Click(Sender: TObject);
+var
+ i,j : integer;
+ f: TextFile;
+begin
+ SaveDataDialog.FileName:='Stats.txt';
+ if SaveDataDialog.Execute then
+  begin
+   AssignFile(f,SaveDataDialog.FileName);
+   Rewrite(f);
+   for i:= 0 to SGStats.RowCount - 2 do
+    begin
+      for j := 0 to SGStats.ColCount - 3 do
+       Write(f,SGStats.Cells[j,i],#9);
+      Write(f,SGStats.Cells[SGStats.ColCount - 2,i]);
+      Writeln(f);
+    end;
+   CloseFile(f);
+  end;
+end;
+
 procedure TFrmMAIN.LoadDataFromTxt(filename : string);
 var
  f: TextFile;
@@ -564,11 +631,14 @@ begin
 end;
 
 procedure TFrmMAIN.N7Click(Sender: TObject);
+var
+ path: string;
 begin
- if not FileExists(CHMHelpFile) then
+ path:=GetCurrentDir+CHMHelpFile;
+ if not FileExists(path) then
   MessageDlg('TODO: впишите что хотите, или что надо',mtInformation,[mbOK],0)
  else
-  ShellExecute(0,'open',PChar(CHMHelpFile),nil,nil,SW_SHOWNORMAL);
+  ShellExecute(0,'open',PChar(path),nil,nil,SW_SHOWNORMAL);
 end;
 
 procedure TFrmMAIN.N8Click(Sender: TObject);
@@ -646,23 +716,17 @@ begin
  VLEdrag:=vleNone;
  vlePrevPos:=-1;
  NAddStats:=0;
+ HRow:=0;
+ HCol:=0;
 end;
 
 procedure TFrmMAIN.N3Click(Sender: TObject);
-var
- ext: string;
 begin
  if OpenFileDialog.Execute then
   begin
-   ext:=ExtractFileExt(OpenFileDialog.FileName);
-   if (ext<>'.txt') and (ext<>'.spectrs') then
-    begin
-      MessageDlg('Неизвестный формат файла',mtError,[mbOK],0);
-      Exit;
-    end;
-   ClearMarkData;
+   N24.Click;
    ChartOut.SeriesList.Clear;
-   if (OpenFileDialog.FilterIndex=1) or (ext='.txt') then LoadDataFromTxt(OpenFileDialog.FileName)
+   if (OpenFileDialog.FilterIndex=1) then LoadDataFromTxt(OpenFileDialog.FileName)
    else LoadDataFromSpectrs(OpenFileDialog.FileName);
    UpdateSpectrStats;
    StatusMain.Panels[1].Text:='Спектров загружено: '+inttostr(ChartOut.SeriesCount);
@@ -700,24 +764,18 @@ begin
  ChartOut.SeriesList.Clear;
  ChartOut.Repaint;
  s_tag:=0;
+ NAddStats:=0;
  ClearMarkData;
 end;
 
 procedure TFrmMAIN.N11Click(Sender: TObject);
-var
- ext: string;
 begin
  if OpenFileDialog.Execute then
   begin
-   ext:=ExtractFileExt(OpenFileDialog.FileName);
-   if (ext<>'.txt') and (ext<>'.spectrs') then
-    begin
-      MessageDlg('Неизвестный формат файла',mtError,[mbOK],0);
-      Exit;
-    end;
    ClearMarkData;
-   if (OpenFileDialog.FilterIndex=1) or (ext='.txt') then  LoadDataFromTxt(OpenFileDialog.FileName)
+   if (OpenFileDialog.FilterIndex=1) then   LoadDataFromTxt(OpenFileDialog.FileName)
    else LoadDataFromSpectrs(OpenFileDialog.FileName);
+   if SGStats.Cells[1,0]<>'' then N14.Click;
    UpdateSpectrStats;
    StatusMain.Panels[1].Text:='Спектров загружено: '+inttostr(ChartOut.SeriesCount);
   end
@@ -1084,6 +1142,30 @@ begin
 end;
 
 
+procedure TFrmMAIN.SGStatsMouseMove(Sender: TObject; Shift: TShiftState; X,
+  Y: Integer);
+var
+ r,c,spn : integer;
+ title: string;
+begin
+ SGStats.MouseToCell(X, Y, C, R);
+ if ((HCol <> c) or (HRow<>r)) then
+ begin
+  HRow:=r; HCol:=c;
+  SGStats.Hint:='';
+  Application.CancelHint;
+  if (R=0) and (C in [1..SGStats.ColCount-NAddStats-1])  then
+   begin
+     title:=Trim(SGStats.Cells[C,R]);
+     Delete(title,1,1);
+     Delete(title,length(title),1);
+     spn:=StrToIntDef(title,-1)-1;
+     if (ChartOut.SeriesCount=0)  or (spn>=ChartOut.SeriesCount) then Exit;
+     if spn>=0 then SGStats.Hint:=ChartOut.Series[spn].Title;
+  end;
+ end;
+end;
+
 function ComparePairIntegers(Item1 : Pointer; Item2 : Pointer) : Integer;
  var
    num1, num2 : PSortPair;
@@ -1142,6 +1224,23 @@ procedure TFrmMAIN.N23Click(Sender: TObject);
 begin
  ChartOut.View3D:=not ChartOut.View3D;
  N23.Checked:=not ChartOut.View3D;
+end;
+
+procedure TFrmMAIN.N24Click(Sender: TObject);
+var
+ i,j: integer;
+begin
+ ClearPeakData;
+ N12.Click;
+ mFrom:=1;
+ mTo:=ValueListSpectr.RowCount-1;
+ ValueListSpectr.Invalidate;
+ SGStats.RowCount:=2;
+ SGStats.ColCount:=5;
+ for j := 0 to 1 do
+  for i := 0 to 4 do
+   SGStats.Cells[i,j]:='';
+ SGStats.Cells[0,0]:=' N линии';
 end;
 
 end.
