@@ -4,9 +4,13 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, ExtCtrls, TeeProcs, TeEngine, Chart, Series, Menus;
+  Dialogs, ExtCtrls, TeeProcs, TeEngine, Chart, Series, Menus,ap, lsfit ;
 
 type
+  TLinearCoeffs=record
+     A,B: double;
+     err: double;
+  end;
   TFrmCurves = class(TForm)
     ChartCurves: TChart;
     MenuCurves: TMainMenu;
@@ -17,6 +21,7 @@ type
     N1: TMenuItem;
     Origin1: TMenuItem;
     N2: TMenuItem;
+    N7: TMenuItem;
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure ChartCurvesClickSeries(Sender: TCustomChart;
       Series: TChartSeries; ValueIndex: Integer; Button: TMouseButton;
@@ -28,8 +33,10 @@ type
     procedure FormCreate(Sender: TObject);
     procedure ChartCurvesMouseMove(Sender: TObject; Shift: TShiftState; X,
       Y: Integer);
+    procedure N7Click(Sender: TObject);
   private
     { Private declarations }
+    function CalcLSforCurve(seriesnum: integer):TLinearCoeffs;
   public
     { Public declarations }
     function RecalcTemperarureCurves():boolean;
@@ -44,6 +51,50 @@ implementation
 uses SpectrCalc, Settings, Math;
 
 {$R *.dfm}
+
+function TFrmCurves.CalcLSforCurve(seriesnum: integer) :TLinearCoeffs;
+var
+ M : AlglibInteger;
+ N : AlglibInteger;
+ Y : TReal1DArray;
+ FMatrix : TReal2DArray;
+ Rep : LSFitReport;
+ Info : AlglibInteger;
+ C : TReal1DArray;
+ I : AlglibInteger;
+ J : AlglibInteger;
+ X : Double;
+ curve: TLineSeries;
+begin
+ if (seriesnum<0) or (seriesnum>=ChartCurves.SeriesList.Count) then Exit;
+
+ curve:=TLineSeries(ChartCurves.Series[seriesnum]);
+ M := 2;
+ N := curve.Count;
+
+ SetLength(Y, N);
+ SetLength(FMatrix, N, M);
+ I:=0;
+ while I<=N-1 do
+  begin
+   X :=  curve.XValue[i];
+   Y[I] := curve.YValue[i];
+   FMatrix[I,0] := 1.0;
+   J:=1;
+   while J<=M-1 do
+    begin
+     FMatrix[I,J] := X*FMatrix[I,J-1];
+     Inc(J);
+    end;
+   Inc(I);
+ end;
+
+ LSFitLinear(Y, FMatrix, N, M, Info, C, Rep);
+
+ Result.A:=C[1];
+ Result.B:=C[0];
+ Result.err:=Rep.AvgRelError;
+end;
 
 function TFrmCurves.RecalcTemperarureCurves():boolean;
 var
@@ -150,6 +201,44 @@ begin
    end;
   end
  else MessageDlg('Сохранение не произведено!',mtInformation,[mbOK],0);
+end;
+
+procedure TFrmCurves.N7Click(Sender: TObject);
+var
+ i,j: integer;
+ res: TLinearCoeffs;
+ linearfit: TFastLineSeries;
+ x,y: double;
+ b : boolean;
+ k: integer;
+begin
+ b:=false; k:=0;
+ while not b do
+  begin
+   if (ChartCurves.Series[k] is TFastLineSeries) then
+    begin
+     ChartCurves.SeriesList.Delete(k);
+     k:=0;
+    end;
+   Inc(k);
+   if (k=ChartCurves.SeriesList.Count) then b:=true;
+  end;
+
+ for I := 0 to ChartCurves.SeriesList.Count - 1 do
+  begin
+   linearfit:=TFastLineSeries.Create(nil);
+   res:=CalcLSforCurve(i);
+   for J := 0 to ChartCurves.Series[i].Count - 1 do
+    begin
+     x:=ChartCurves.Series[i].XValue[J];
+     y:=res.A*x+res.B;
+     linearfit.AddXY(x,y);
+    end; 
+   linearfit.Color:=ChartCurves.Series[i].Color;
+   linearfit.Title:='y=Ax+B; A= '+FloatToStrF(res.A,ffGeneral,4,5)+
+     '  B= '+FloatToStrF(res.B,ffGeneral,4,5)+' err= '+FloatToStrF(res.err,ffGeneral,4,5);
+   linearfit.ParentChart:=ChartCurves;
+  end;
 end;
 
 procedure TFrmCurves.Origin1Click(Sender: TObject);
