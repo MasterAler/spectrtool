@@ -154,7 +154,7 @@ begin
        Line(ChartCurves.ChartRect.Left,Y,ChartCurves.ChartRect.Right,Y);
        Line(X,ChartCurves.ChartRect.Top,X,ChartCurves.ChartRect.Bottom);
        ChartCurves.Series[i].GetCursorValues(xval,yval);
-       TextOut(X+7,Y-TextHeight('X')-3,'X= '+FloatToStrF(xval,ffGeneral,6,2)+'  Y= '+inttostr(Round(yval)));
+       TextOut(X+7,Y-TextHeight('X')-3,'X= '+FloatToStrF(xval,ffGeneral,6,2)+'  Y= '+FloatToStrF(yval,ffGeneral,4,2));
       end;
     end;
   end;
@@ -235,7 +235,7 @@ begin
      linearfit.AddXY(x,y);
     end; 
    linearfit.Color:=ChartCurves.Series[i].Color;
-   linearfit.Title:='y=Ax+B; A= '+FloatToStrF(res.A,ffGeneral,4,5)+
+   linearfit.Title:='y=-Ax+B; 1/A= '+FloatToStrF(-1/res.A,ffGeneral,4,5)+
      '  B= '+FloatToStrF(res.B,ffGeneral,4,5)+' err= '+FloatToStrF(res.err,ffGeneral,4,5);
    linearfit.ParentChart:=ChartCurves;
   end;
@@ -254,14 +254,14 @@ begin
    AssignFile(f,FrmMain.SaveDataDialog.FileName);
    Rewrite(f);
    Write(f,'F(K)');
-   for i:=1 to ChartCurves.SeriesCount-1 do
+   for i:=1 to ChartCurves.SeriesCount do
      Write(f,#9,'LnZ':10,i);
    Writeln(f);
    line:=ChartCurves.Series[0];
    for j:=0 to line.Count-1 do
     begin
      Write(f,line.XValue[j]:5:2);
-     for i:=1 to ChartCurves.SeriesCount-1 do
+     for i:=0 to ChartCurves.SeriesCount-1 do
       begin
        line:=ChartCurves.Series[i];
        Write(f,#9,line.YValue[j]:10:4);

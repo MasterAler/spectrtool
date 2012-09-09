@@ -2,7 +2,7 @@ object FrmCurves: TFrmCurves
   Left = 191
   Top = 137
   Caption = #1058#1077#1084#1087#1077#1088#1072#1090#1091#1088#1085#1099#1077' '#1082#1088#1080#1074#1099#1077
-  ClientHeight = 295
+  ClientHeight = 335
   ClientWidth = 477
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -21,10 +21,11 @@ object FrmCurves: TFrmCurves
     Left = 0
     Top = 0
     Width = 477
-    Height = 295
+    Height = 335
     BackWall.Brush.Color = clWhite
     BackWall.Brush.Style = bsClear
     Legend.Alignment = laTop
+    Legend.CheckBoxes = True
     Legend.LegendStyle = lsSeries
     Title.Text.Strings = (
       #1058#1077#1084#1087#1077#1088#1072#1090#1091#1088#1085#1099#1077' '#1082#1088#1080#1074#1099#1077)
@@ -35,7 +36,7 @@ object FrmCurves: TFrmCurves
     Align = alClient
     TabOrder = 0
     OnMouseMove = ChartCurvesMouseMove
-    ExplicitHeight = 275
+    ExplicitHeight = 315
   end
   object MenuCurves: TMainMenu
     Left = 8

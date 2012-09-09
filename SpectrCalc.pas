@@ -766,6 +766,7 @@ begin
  s_tag:=0;
  NAddStats:=0;
  ClearMarkData;
+ StatusMain.Panels[1].Text:='Спектров загружено: 0';
 end;
 
 procedure TFrmMAIN.N11Click(Sender: TObject);
@@ -1057,7 +1058,7 @@ begin
        Line(ChartOut.ChartRect.Left,Y,ChartOut.ChartRect.Right,Y);
        Line(X,ChartOut.ChartRect.Top,X,ChartOut.ChartRect.Bottom);
        ChartOut.Series[i].GetCursorValues(xval,yval);
-       TextOut(X+7,Y-TextHeight('X')-3,'X= '+FloatToStrF(xval,ffGeneral,6,2)+'  Y= '+inttostr(Round(yval)));
+       TextOut(X+7,Y-TextHeight('X')-3,'X= '+FloatToStrF(xval,ffGeneral,6,2)+'  Y= '+{FloatToStrF(yval,ffGeneral,5,0));} inttostr(Round(yval)));
       end;
     end;
   end;
