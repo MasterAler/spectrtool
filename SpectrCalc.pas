@@ -44,6 +44,12 @@ type
       row: TStringList;
      end;
      PSortPair=^TSortPair;
+    //---------------------------
+     TMarkDrag=record
+      ser_id : integer;
+      mark_id: integer;
+      in_process: boolean;
+     end;
   TFrmMAIN = class(TForm)
     MainMenu: TMainMenu;
     Af1: TMenuItem;
@@ -135,6 +141,11 @@ type
     procedure SGStatsMouseMove(Sender: TObject; Shift: TShiftState; X,
       Y: Integer);
     procedure Origin2Click(Sender: TObject);
+    procedure ChartOutMouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure ChartOutMouseUp(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure ChartOutMouseLeave(Sender: TObject);
   private
     { Private declarations }
     procedure UpdateNums();
@@ -169,6 +180,7 @@ var
   GridComboN: TComboBox;
   mFrom,mTo : integer;
   TraceChart: boolean;
+  MarkDrag : TMarkDrag;
   isVLEdragging: boolean;
   //кривой избыточный костыль, но так понятнее, где
   //таскание и его проверки выглядят оптимальнее
@@ -397,12 +409,18 @@ begin
 end;
 
 procedure TFrmMAIN.FindPeakValues();
+{
+  N.B. MarkList - набор НОМЕРОВ точек пиков, сохраненных как строки для удобства.
+  Не помню, зачем я так сделал. Но эта функция их них делает массивы координат и
+  сохраняет в PeakList, по которому все расчеты.
+}
 var
  i,j,k : integer;
  lst: TStringList;
  line: TFastLineSeries;
  poses: PCurvePeaks;
 begin
+   ClearPeakData;
    PeakList.Clear;
    for i:=0 to MarkList.Count-1 do
     begin
@@ -520,7 +538,8 @@ begin
      lst:=PPeakData(MarkList[i])^.MaxList;
      if lst=nil then continue;
      if (lst.IndexOf(inttostr(ValueIndex))<>-1) then
-       MarkText:=floattostr(Round(Sender.YValue[ValueIndex]));
+       MarkText:={floattostrf(Sender.XValue[ValueIndex],ffGeneral,5,3) +#13#10+}
+       floattostr(Round(Sender.YValue[ValueIndex]));
     end;
   end;
 end;
@@ -718,6 +737,10 @@ begin
  NAddStats:=0;
  HRow:=0;
  HCol:=0;
+ //---------------
+ MarkDrag.in_process:=false;
+ MarkDrag.ser_id:=-1;
+ MarkDrag.mark_id:=-1;
 end;
 
 procedure TFrmMAIN.N3Click(Sender: TObject);
@@ -1038,13 +1061,77 @@ begin
     end;
 end;
 
+procedure TFrmMAIN.ChartOutMouseDown(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+var
+ i,id: integer;
+begin
+ for i := 0 to ChartOut.SeriesCount - 1 do
+   begin
+     id:=ChartOut.Series[i].Marks.Clicked(X,Y);
+     if (id<>-1) then
+      begin
+        MarkDrag.ser_id:=i;
+        MarkDrag.mark_id:=id;
+        MarkDrag.in_process:=true;
+        StatusMain.Panels[2].Text:='mark moving';
+      end;
+   end;
+end;
+
+procedure TFrmMAIN.ChartOutMouseLeave(Sender: TObject);
+begin
+ ChartOutMouseUp(Sender,mbLeft,[],0,0);
+end;
+
 procedure TFrmMAIN.ChartOutMouseMove(Sender: TObject; Shift: TShiftState;
   X, Y: Integer);
 var
  i: integer;
  xval,yval: double;
+ //------------------
+ lst: TStringList;
+ i_mrk : integer;
+ ms_x: double;
+ line: TFastLineSeries;
+ new_m: integer;
 begin
- if (ChartOut.SeriesCount=0) or (not TraceChart) then Exit;
+  if (ChartOut.SeriesCount=0) then Exit;
+ //-------------------------------------
+ if MarkDrag.in_process then
+  begin
+    ChartOut.Repaint;
+    line:=TFastLineSeries(ChartOut.Series[MarkDrag.ser_id]);
+   // if (X>=line.XValues.First) {and (X<=line.XValues.Last)} then
+  //   begin
+      lst:=PPeakData(MarkList[MarkDrag.ser_id])^.MaxList;
+      if lst<>nil then
+       begin
+         i_mrk:=lst.IndexOf(inttostr(MarkDrag.mark_id));
+         if (i_mrk<>-1) then
+          begin
+           ms_x:=line.XScreenToValue(X);
+           new_m:=strtoint(lst[i_mrk]);
+           if (ms_x>line.XValue[new_m]) then
+             while (ms_x>line.XValue[new_m]) do Inc(new_m)
+           else
+             while (ms_x<line.XValue[new_m]) do Dec(new_m);
+           lst[i_mrk]:=inttostr(new_m);
+           MarkDrag.mark_id:=new_m;
+          end;
+       end;
+       with ChartOut.Canvas do
+        begin
+         Pen.Color:=clRed;
+         Pen.Style:=psDot;
+         Pen.Width:=1;
+         Line(X,ChartOut.ChartRect.Top,X,ChartOut.ChartRect.Bottom);
+        end;
+  //     ChartOut.Repaint;
+  //   end;
+  end;
+ //-------------------------------------
+ if (not TraceChart) then Exit;
  ChartOut.Repaint;
  for i:=0 to ChartOut.SeriesCount-1 do
   begin
@@ -1062,6 +1149,17 @@ begin
       end;
     end;
   end;
+end;
+
+procedure TFrmMAIN.ChartOutMouseUp(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+begin
+  MarkDrag.ser_id:=-1;
+  MarkDrag.mark_id:=-1;
+  MarkDrag.in_process:=false;
+  StatusMain.Panels[2].Text:='';
+  ChartOut.Repaint;
+  FindPeakValues;
 end;
 
 procedure TFrmMAIN.N21Click(Sender: TObject);

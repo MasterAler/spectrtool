@@ -37,6 +37,9 @@ object FrmMAIN: TFrmMAIN
       end
       item
         Text = #1057#1087#1077#1082#1090#1088#1086#1074' '#1079#1072#1075#1088#1091#1078#1077#1085#1086': 0'
+        Width = 200
+      end
+      item
         Width = 50
       end>
   end
@@ -66,12 +69,10 @@ object FrmMAIN: TFrmMAIN
       Zoom.Animated = True
       Align = alClient
       TabOrder = 0
+      OnMouseDown = ChartOutMouseDown
+      OnMouseLeave = ChartOutMouseLeave
       OnMouseMove = ChartOutMouseMove
-      PrintMargins = (
-        15
-        18
-        15
-        18)
+      OnMouseUp = ChartOutMouseUp
     end
   end
   object Panel2: TPanel
@@ -125,8 +126,6 @@ object FrmMAIN: TFrmMAIN
     OnMouseMove = ValueListSpectrMouseMove
     OnMouseUp = ValueListSpectrMouseUp
     OnValidate = ValueListSpectrValidate
-    ExplicitLeft = -5
-    ExplicitTop = -2
     ColWidths = (
       38
       69)
