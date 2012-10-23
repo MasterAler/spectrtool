@@ -2,7 +2,7 @@ object FrmMAIN: TFrmMAIN
   Left = 192
   Top = 126
   Caption = #1059#1089#1090#1072#1085#1086#1074#1082#1072' "'#1058#1077#1095#1100'". '#1054#1073#1088#1072#1073#1086#1090#1095#1080#1082' '#1089#1087#1077#1082#1090#1088#1072
-  ClientHeight = 551
+  ClientHeight = 571
   ClientWidth = 779
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -18,7 +18,7 @@ object FrmMAIN: TFrmMAIN
   TextHeight = 13
   object Separator: TSplitter
     Left = 0
-    Top = 457
+    Top = 477
     Width = 779
     Height = 3
     Cursor = crVSplit
@@ -27,7 +27,7 @@ object FrmMAIN: TFrmMAIN
   end
   object StatusMain: TStatusBar
     Left = 0
-    Top = 532
+    Top = 552
     Width = 779
     Height = 19
     Panels = <
@@ -47,14 +47,14 @@ object FrmMAIN: TFrmMAIN
     Left = 113
     Top = 0
     Width = 666
-    Height = 457
+    Height = 477
     Align = alClient
     TabOrder = 1
     object ChartOut: TChart
       Left = 1
       Top = 1
       Width = 664
-      Height = 455
+      Height = 475
       BackWall.Brush.Color = clWhite
       BackWall.Brush.Style = bsClear
       Legend.Alignment = laTop
@@ -77,7 +77,7 @@ object FrmMAIN: TFrmMAIN
   end
   object Panel2: TPanel
     Left = 0
-    Top = 460
+    Top = 480
     Width = 779
     Height = 72
     Align = alBottom
@@ -111,7 +111,7 @@ object FrmMAIN: TFrmMAIN
     Left = 0
     Top = 0
     Width = 113
-    Height = 457
+    Height = 477
     Align = alLeft
     KeyOptions = [keyEdit, keyAdd, keyDelete, keyUnique]
     Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goDrawFocusSelected, goColSizing, goEditing, goThumbTracking]
@@ -408,6 +408,13 @@ object FrmMAIN: TFrmMAIN
           C880000000000000000033333333333333333333333333333333}
         Caption = #1053#1072#1089#1090#1088#1086#1081#1082#1080
         OnClick = N17Click
+      end
+    end
+    object N25: TMenuItem
+      Caption = #1052#1086#1076#1091#1083#1080
+      object N26: TMenuItem
+        Caption = #1054#1073#1088#1072#1073#1086#1090#1082#1072' '#1042#1040#1061
+        OnClick = N26Click
       end
     end
     object N6: TMenuItem

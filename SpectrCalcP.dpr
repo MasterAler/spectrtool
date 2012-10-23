@@ -6,7 +6,9 @@ uses
   CalcCurve in 'CalcCurve.pas' {FrmCurves},
   Settings in 'Settings.pas' {FrmSettings},
   Chooser in 'Chooser.pas' {FrmChooser},
-  SpectrsReader in 'SpectrsReader.pas';
+  SpectrsReader in 'SpectrsReader.pas',
+  VAH_tool in 'VAH_tool.pas' {FrmVAH},
+  IntervalSetter in 'IntervalSetter.pas' {FrmIntervals};
 
 {$R *.res}
 
@@ -18,5 +20,7 @@ begin
   Application.CreateForm(TFrmCurves, FrmCurves);
   Application.CreateForm(TFrmSettings, FrmSettings);
   Application.CreateForm(TFrmChooser, FrmChooser);
+  Application.CreateForm(TFrmVAH, FrmVAH);
+  Application.CreateForm(TFrmIntervals, FrmIntervals);
   Application.Run;
 end.

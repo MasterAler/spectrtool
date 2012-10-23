@@ -12,7 +12,8 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, Menus, ComCtrls, ExtCtrls, TeeProcs, TeEngine, Chart, StdCtrls,
-  Grids, ValEdit, ShellAPI, Series, ExtDlgs, CalcCurve, Settings, Chooser, Contnrs, XPMan;
+  Grids, ValEdit, ShellAPI, Series, ExtDlgs, CalcCurve, Settings, Chooser, VAH_tool,
+  Contnrs, XPMan;
 
 const
  TableFile='TableValues.txt';
@@ -90,6 +91,8 @@ type
     Origin1: TMenuItem;
     N24: TMenuItem;
     Origin2: TMenuItem;
+    N25: TMenuItem;
+    N26: TMenuItem;
     procedure N1Click(Sender: TObject);
     procedure N7Click(Sender: TObject);
     procedure N8Click(Sender: TObject);
@@ -146,6 +149,7 @@ type
     procedure ChartOutMouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure ChartOutMouseLeave(Sender: TObject);
+    procedure N26Click(Sender: TObject);
   private
     { Private declarations }
     procedure UpdateNums();
@@ -1340,6 +1344,11 @@ begin
   for i := 0 to 4 do
    SGStats.Cells[i,j]:='';
  SGStats.Cells[0,0]:=' N линии';
+end;
+
+procedure TFrmMAIN.N26Click(Sender: TObject);
+begin
+ FrmVAH.Show;
 end;
 
 end.
