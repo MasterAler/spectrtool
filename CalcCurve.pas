@@ -7,6 +7,7 @@ uses
   Dialogs, ExtCtrls, TeeProcs, TeEngine, Chart, Series, Menus, ap, lsfit, IntervalSetter ;
 
 type
+  TLineType = (ltAll = -1, ltHot = 3, ltEntire = 9, ltStantard = 12 );
   TNumInterval = record
     _from: integer;
     _to: integer;
@@ -29,6 +30,9 @@ type
     N7: TMenuItem;
     N1910231: TMenuItem;
     N8: TMenuItem;
+    N9: TMenuItem;
+    N10: TMenuItem;
+    N11: TMenuItem;
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure ChartCurvesClickSeries(Sender: TCustomChart;
       Series: TChartSeries; ValueIndex: Integer; Button: TMouseButton;
@@ -43,6 +47,9 @@ type
     procedure N7Click(Sender: TObject);
     procedure N1910231Click(Sender: TObject);
     procedure N8Click(Sender: TObject);
+    procedure N9Click(Sender: TObject);
+    procedure N11Click(Sender: TObject);
+    procedure N10Click(Sender: TObject);
   private
     { Private declarations }
     function CalcLSforData(data : TPointArr):TLinearCoeffs;
@@ -51,6 +58,7 @@ type
     function CalcLSforCurvePart(seriesnum: integer; left, right: integer):TLinearCoeffs;
   public
     { Public declarations }
+    procedure ClearFastlines(tag : TLineType = ltAll);
     function RecalcTemperarureCurves():boolean;
     function SeriesToPointArr( series: TChartSeries): TPointArr;
     function SeriesPartToPointArr( series: TChartSeries; left, right: integer): TPointArr;
@@ -170,6 +178,50 @@ begin
   end;
 end;
 
+procedure TFrmCurves.ClearFastlines(tag : TLineType);
+  {
+   Защищает от многократных нажатий на обработки кривых,
+   график не засоряется,а пересчитывается. Сходу хрен поймешь, но
+   идея в том, что данные - это TLineSeries, а МНК - TFastLineSeries.
+   Для разных МНК придется обходится опознавательными значениями Tag.
+  }
+var
+ b : boolean;
+ k: integer;
+begin
+ b:=false; k:=0;
+ if tag=ltAll then
+  begin
+   //--------
+   while not b do
+    begin
+     if (ChartCurves.Series[k] is TFastLineSeries) then
+      begin
+       ChartCurves.SeriesList.Delete(k);
+       k:=0;
+      end;
+     Inc(k);
+     if (k=ChartCurves.SeriesList.Count) then b:=true;
+    end;
+   //-----------
+  end
+ else
+  begin
+  //-----
+   while not b do
+    begin
+     if (ChartCurves.Series[k] is TFastLineSeries) and (ChartCurves.Series[k].Tag = Integer(tag) ) then
+      begin
+       ChartCurves.SeriesList.Delete(k);
+       k:=0;
+      end;
+     Inc(k);
+     if (k=ChartCurves.SeriesList.Count) then b:=true;
+    end;
+   //---------
+  end;
+end;
+
 procedure TFrmCurves.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
  Action:=caHide;
@@ -247,33 +299,25 @@ begin
  if (Button=mbRight) then Series.Free;
 end;
 
+procedure TFrmCurves.N10Click(Sender: TObject);
+begin
+ ClearFastlines();
+ ChartCurves.Repaint;
+end;
+
+procedure TFrmCurves.N11Click(Sender: TObject);
+begin
+ ChartCurves.PrintLandscape;
+end;
+
 procedure TFrmCurves.N1910231Click(Sender: TObject);
 var
  i,j: integer;
  res1, res2: TLinearCoeffs;
  linearfit1, linearfit2 : TFastLineSeries;
  x,y: double;
- b : boolean;
- k: integer;
 begin
-  {
-   Защищает от многократных нажатий на обработки кривых,
-   график не засоряется,а пересчитывается. Сходу хрен поймешь, но
-   идея в том, что данные - это TLineSeries, а МНК - TFastLineSeries.
-   Для разных МНК придется обходится опознавательными значениями Tag.
-    *** предустановленная обработка***
-  }
- b:=false; k:=0;
- while not b do
-  begin
-   if (ChartCurves.Series[k] is TFastLineSeries) and (ChartCurves.Series[k].Tag = 12) then
-    begin
-     ChartCurves.SeriesList.Delete(k);
-     k:=0;
-    end;
-   Inc(k);
-   if (k=ChartCurves.SeriesList.Count) then b:=true;
-  end;
+  ClearFastlines(ltStantard);
 
  {
   Тут, кстати, в 2 местах написан лютый адъ : цикл идет по размеру
@@ -349,26 +393,8 @@ var
  res: TLinearCoeffs;
  linearfit: TFastLineSeries;
  x,y: double;
- b : boolean;
- k: integer;
 begin
-  {
-   Защищает от многократных нажатий на обработки кривых,
-   график не засоряется,а пересчитывается. Сходу хрен поймешь, но
-   идея в том, что данные - это TLineSeries, а МНК - TFastLineSeries.
-   Для разных МНК придется обходится опознавательными значениями Tag.
-  }
- b:=false; k:=0;
- while not b do
-  begin
-   if (ChartCurves.Series[k] is TFastLineSeries) and (ChartCurves.Series[k].Tag = 9) then
-    begin
-     ChartCurves.SeriesList.Delete(k);
-     k:=0;
-    end;
-   Inc(k);
-   if (k=ChartCurves.SeriesList.Count) then b:=true;
-  end;
+ ClearFastlines(ltEntire);
 
  for I := 0 to ChartCurves.SeriesList.Count - 1 do
   begin
@@ -395,6 +421,44 @@ begin
       MessageDlg('Диапазоны изменены', mtInformation,[mbOK],0)
  else
       MessageDlg('Ввод отменен или данные не годятся', mtWarning,[mbOK],0);
+end;
+
+procedure TFrmCurves.N9Click(Sender: TObject);
+var
+ i,j: integer;
+ res2: TLinearCoeffs;
+ linearfit2 : TFastLineSeries;
+ x,y: double;
+begin
+  ClearFastlines(ltHot);
+
+ {
+  Тут, кстати, в 2 местах написан лютый адъ : цикл идет по размеру
+  списка, который в Delphi записывается границей 1 раз. При этом серии,
+  добавляемые в конец, не попадут в обработку. Так-то :))
+ }
+ for I := 0 to ChartCurves.SeriesList.Count - 1 do
+  begin
+   if (ChartCurves.Series[i] is TFastLineSeries) then Continue;
+   linearfit2:=TFastLineSeries.Create(nil);
+   try
+     res2:=CalcLSforCurvePart(i, second._from, second._to);
+   except
+    MessageDlg('Исправьте диапазоны',mtError,[mbOK],0);
+    Break;
+   end;
+   for J := second._from to second._to do
+    begin
+     x:=ChartCurves.Series[i].XValue[J-1];
+     y:=res2.A*x+res2.B;
+     linearfit2.AddXY(x,y);
+    end;
+   linearfit2.Tag := 3; // а вот потому что
+   linearfit2.Color:=ChartCurves.Series[i].Color;
+   linearfit2.Title:='II : y=-Ax+B; 1/A= '+FloatToStrF(-1/res2.A,ffGeneral,4,5)+
+     '  B= '+FloatToStrF(res2.B,ffGeneral,4,5)+' err= '+FloatToStrF(res2.err,ffGeneral,4,5);
+   linearfit2.ParentChart:=ChartCurves;
+  end;
 end;
 
 procedure TFrmCurves.Origin1Click(Sender: TObject);

@@ -23,7 +23,7 @@ const
  StatActionArray: array [1..1] of string[7] = ('Average');
  //список команд статистики можно расширять
 type
-    TVLEDragType=(vleFrom,vleTo,vleNone);
+    TVLEDragType = (vleFrom,vleTo,vleNone);
     PeakPos=packed record
      x,y: real;
     end;

@@ -1,6 +1,6 @@
 object FrmChooser: TFrmChooser
-  Left = 192
-  Top = 124
+  Left = 655
+  Top = 414
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
   Caption = #1042#1099#1073#1077#1088#1080#1090#1077' '#1074#1080#1076' '#1089#1090#1072#1090#1080#1089#1090#1080#1082#1080
@@ -13,6 +13,7 @@ object FrmChooser: TFrmChooser
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = False
+  Position = poDesigned
   OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13

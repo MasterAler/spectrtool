@@ -1,6 +1,6 @@
 object FrmSettings: TFrmSettings
-  Left = 192
-  Top = 124
+  Left = 711
+  Top = 118
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
   Caption = #1053#1072#1089#1090#1088#1086#1081#1082#1080' '#1080' '#1082#1086#1101#1092#1092#1080#1094#1080#1077#1085#1090#1099
@@ -13,7 +13,7 @@ object FrmSettings: TFrmSettings
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = False
-  Position = poMainFormCenter
+  Position = poDesigned
   OnClose = FormClose
   OnCreate = FormCreate
   OnDestroy = FormDestroy

@@ -1,6 +1,6 @@
 object FrmIntervals: TFrmIntervals
-  Left = 49
-  Top = 55
+  Left = 854
+  Top = 133
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
   Caption = #1044#1080#1072#1087#1072#1079#1086#1085#1099' '#1089#1090#1072#1085#1076#1072#1088#1090#1085#1086#1075#1086' '#1052#1053#1050
@@ -67,7 +67,7 @@ object FrmIntervals: TFrmIntervals
       MaxValue = 50
       MinValue = 1
       TabOrder = 0
-      Value = 0
+      Value = 1
     end
     object se1To: TSpinEdit
       Left = 40
@@ -77,7 +77,7 @@ object FrmIntervals: TFrmIntervals
       MaxValue = 50
       MinValue = 1
       TabOrder = 1
-      Value = 0
+      Value = 1
     end
   end
   object GroupBox2: TGroupBox
@@ -121,7 +121,7 @@ object FrmIntervals: TFrmIntervals
       MaxValue = 50
       MinValue = 1
       TabOrder = 0
-      Value = 0
+      Value = 1
     end
     object se2To: TSpinEdit
       Left = 40
@@ -131,7 +131,7 @@ object FrmIntervals: TFrmIntervals
       MaxValue = 50
       MinValue = 1
       TabOrder = 1
-      Value = 0
+      Value = 1
     end
   end
   object bbCancel: TBitBtn
