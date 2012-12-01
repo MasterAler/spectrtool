@@ -4,8 +4,8 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, Menus, ExtCtrls, TeeProcs, TeEngine, Series, Chart,
-  SDL_math2, SDL_vector;
+  Dialogs, Menus, ExtCtrls, TeeProcs, TeEngine, Series, Chart, ShellAPI, ShlObj,
+  savgol;
 
 type
     TPointFloat_cl = class
@@ -33,7 +33,13 @@ type
     N8: TMenuItem;
     N9: TMenuItem;
     N10: TMenuItem;
-    SDLtrial1: TMenuItem;
+    N11: TMenuItem;
+    N12: TMenuItem;
+    N13: TMenuItem;
+    N15: TMenuItem;
+    SaveDialogCSV: TSaveDialog;
+    N14: TMenuItem;
+    N16: TMenuItem;
     procedure N2Click(Sender: TObject);
     procedure N4Click(Sender: TObject);
     procedure N8Click(Sender: TObject);
@@ -42,25 +48,31 @@ type
     procedure N10Click(Sender: TObject);
     procedure N9Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
-    procedure SDLtrial1Click(Sender: TObject);
+    procedure N11Click(Sender: TObject);
+    procedure N12Click(Sender: TObject);
+    procedure N13Click(Sender: TObject);
+    procedure N15Click(Sender: TObject);
+    procedure N14Click(Sender: TObject);
+    procedure N16Click(Sender: TObject);
   private
     { Private declarations }
   public
     { Public declarations }
     procedure AddSeriesFromFilteredFile(filename: string);
-    procedure SavePointclassList(list: TStringList; filename: string);
+    procedure SavePointClassList(list: TStringList; filename: string);
+    procedure SaveSeriesPointsCSV(points: TPointVector; filename: string);
     function LoadAndFilterData(filename: string): TStringList;
     procedure AddSeries( X,Y : TDoublrArr; title: string );  overload;
     procedure AddSeries(list: TStringList; title: string); overload;
     function DifferentiateSeries(series: TChartSeries): TFastLineSeries;
-    //--- Сраный Savitzky-Golay сделаю, используя готовые коэффициенты ----
-    function SG_get_second_derivative(series: TChartSeries; Degree: integer = 2): TFastLineSeries;
-    function SavGolSecondDerivativeSDL(series: TChartSeries; WindowSize: integer = 5): TFastLineSeries;
+    //--- Долбаный Savitzky-Golay, всё-таки побежал----
+    function SGFilterAndSecondDerive(series: TChartSeries; window_size: integer = 500; degree: integer = 3; order: integer = 2): TFastLineSeries;
   end;
 
 var
   FrmVAH: TFrmVAH;
   was_differentiated: boolean;
+  perc : double;
 
 implementation
 
@@ -164,6 +176,124 @@ begin
  else MessageDlg('Файл не выбран!',mtInformation,[mbOK],0);
 end;
 
+procedure TFrmVAH.N11Click(Sender: TObject);
+begin
+ if (ChartVAH.SeriesCount > 1) or (ChartVAH.SeriesCount = 0) then
+  MessageDlg('Работает только для одной кривой!', mtWarning, [mbOK], 0);
+end;
+
+procedure TFrmVAH.N12Click(Sender: TObject);
+var
+ line: TFastLineSeries;
+begin
+ if (ChartVAH.SeriesCount > 1) or (ChartVAH.SeriesCount = 0) then Exit;
+
+ line:=TFastLineSeries(ChartVAH.Series[0]);
+ while (line.Count > 2) and (line.YValue[line.Count-2] > line.YValue[line.Count-1]) do
+  line.Delete(line.Count-1);
+end;
+
+procedure TFrmVAH.N13Click(Sender: TObject);
+var
+ top, bottom, tail: double;
+ line: TFastLineSeries;
+begin
+ if (ChartVAH.SeriesCount > 1) or (ChartVAH.SeriesCount = 0) then Exit;
+
+ line:=TFastLineSeries(ChartVAH.Series[0]);
+ top:=line.MaxYValue;
+ bottom:=line.MinYValue;
+ tail:=  bottom + (top - bottom)*perc;
+ while (line.Count > 0) and (line.YValue[0] < tail) do
+  line.Delete(0);
+end;
+
+procedure TFrmVAH.N14Click(Sender: TObject);
+var
+ Sperc: string;
+begin
+ Sperc:=Floattostr(perc);
+ if InputQuery('Порог отрезания хвоста','Введите порог (от 0 до 1)',Sperc) then
+  MessageDlg('Успешно изменено',mtInformation,[mbOK],0)
+ else  MessageDlg('Ввод отменен',mtInformation,[mbOK],0);
+ perc:= StrToFloatDef(Sperc, perc);
+end;
+
+procedure TFrmVAH.N15Click(Sender: TObject);
+var
+ i: integer;
+ line: TFastLineSeries;
+ list: TStringList;
+ pt: TPointFloat_cl;
+begin
+  if (ChartVAH.SeriesCount > 1) or (ChartVAH.SeriesCount = 0) then   Exit;
+
+   if SaveDialogCSV.Execute then
+    begin
+      line:=TFastLineSeries(ChartVAH.Series[0]);
+      list:=TStringList.Create;
+      for I := 0 to line.Count - 1 do
+       begin
+        pt:=TPointFloat_cl.Create;
+        pt.x := line.XValue[i];
+        pt.y := line.YValue[i];
+        list.AddObject(FloatToStr(line.XValue[i]), pt);
+       end;
+      SavePointClassList(list, SaveDialogCSV.FileName+'.csv');
+      list.Free;
+    end
+  else MessageDlg('Файл не выбран!',mtInformation,[mbOK],0);
+end;
+
+procedure TFrmVAH.N16Click(Sender: TObject);
+const
+ fTag = '_SVD';
+var
+ i, j : integer;
+ points: TPointVector;
+ dir: string;
+ //--------
+ TitleName: string;
+ lpItemID: PItemIDList;
+ BrowseInfo: TBrowseInfo;
+ DisplayName: array[0..MAX_PATH] of char;
+begin
+ if ChartVAH.SeriesCount = 0 then Exit;
+ 
+ FillChar(BrowseInfo, sizeof(TBrowseInfo), #0);
+ BrowseInfo.hwndOwner := Self.Handle;
+ BrowseInfo.pszDisplayName := @DisplayName;
+ TitleName := 'Выберите папку для сохранения данных';
+ BrowseInfo.lpszTitle := PChar(TitleName);
+ BrowseInfo.ulFlags := BIF_RETURNONLYFSDIRS;
+ lpItemID := SHBrowseForFolder(BrowseInfo);
+
+ if lpItemId = nil {not SelectDirectory('Выберите папку для сохранения данных', GetCurrentDir(), dir )} then
+  begin
+    MessageDlg('Путь сохранения не выбран!', mtInformation, [mbOK], 0);
+    Exit;
+  end;
+
+ SetLength(dir, MAX_PATH);
+ SHGetPathFromIDList(lpItemID, PChar(dir));
+ GlobalFreePtr(lpItemID);
+ SetLength(dir, Pos(#0, dir) -1);
+
+ //----------------------
+ 
+ for i := 0 to ChartVAH.SeriesCount - 1 do
+   begin
+    SetLength(points, ChartVAH.Series[i].Count);
+    for j := 0 to ChartVAH.Series[i].Count - 1 do
+      begin
+        points[j].x := ChartVAH.Series[i].XValue[j];
+        points[j].y := ChartVAH.Series[i].YValue[j];
+      end;
+    SaveSeriesPointsCSV(points, dir + '\' + ChartVAH.Series[i].Title + fTag);
+   end;
+ MessageDlg('Данные успешно сохранены!', mtInformation, [mbOK], 0);
+end;
+
 procedure TFrmVAH.N2Click(Sender: TObject);
 begin
  Close;
@@ -187,8 +317,7 @@ begin
  //-----понеслась-------------
  h1 := series.XValue[1] - series.XValue[0];
  h2 := series.XValue[2] - series.XValue[1];
-// ShowMessage(floattostr(series.XValue[2])+#13#10+floattostr(series.XValue[1])
-//  +#13#10+floattostr(series.XValue[0]));
+
  x := series.XValue[0];
  y := (series.YValue[2] - 2*series.YValue[1] + series.YValue[0]) / (h1 * h2);
  new_series.AddXY(x,y);
@@ -213,6 +342,7 @@ end;
 procedure TFrmVAH.FormCreate(Sender: TObject);
 begin
  was_differentiated:=false;
+ perc := 0.03;
 end;
 
 function TFrmVAH.LoadAndFilterData(filename: string): TStringList;
@@ -270,7 +400,8 @@ begin
  SetLength(diffs, ChartVAH.SeriesCount);
  for I := 0 to ChartVAH.SeriesCount - 1 do
   begin
-   diffs[i] := SG_get_second_derivative(ChartVAH.Series[i], 12 );
+    diffs[i] := SGFilterAndSecondDerive(ChartVAH.Series[i], 500, 3, 2);
+ //  diffs[i] := SG_get_second_derivative(ChartVAH.Series[i], 12 );
  //  diffs[i] := SavGolSecondDerivativeSDL(ChartVAH.Series[i], 25);
    diffs[i].Title := ChartVAH.Series[i].Title;
   end;
@@ -322,6 +453,7 @@ end;
 procedure TFrmVAH.N8Click(Sender: TObject);
 begin
  ChartVAH.SeriesList.Clear;
+ ChartVAH.Repaint;
 end;
 
 procedure TFrmVAH.N9Click(Sender: TObject);
@@ -330,7 +462,7 @@ begin
  N10.Click;
 end;
 
-procedure TFrmVAH.SavePointclassList(list: TStringList; filename : string);
+procedure TFrmVAH.SavePointClassList(list: TStringList; filename : string);
 var
  f: TextFile;
  I : integer;
@@ -345,229 +477,46 @@ begin
  Closefile(f);
 end;
 
-
-function TFrmVAH.SavGolSecondDerivativeSDL(series: TChartSeries; WindowSize: integer): TFastLineSeries;
+procedure TFrmVAH.SaveSeriesPointsCSV(points: TPointVector; filename: string);
 var
- i: integer;
- line: TFastLineSeries;
- in_vector, out_vector: TVector;
- N : integer;
+ f: TextFile;
+ I : integer;
 begin
- line:=TFastLineSeries.Create(nil);
- in_vector:=TVector.Create(nil);
- out_vector:=TVector.Create(nil);
- N := series.Count;
- in_vector.NrOfElem := N;
- out_vector.NrOfElem := N;
- for I := 0 to N - 1 do
+ AssignFile(f, filename + '.csv');
+ Rewrite(f);
+ for I := 0 to Length(points) - 1 do
    begin
-     in_vector.Elem[i+1] := series.YValue[i];
+    Writeln(f, points[i].x, ',',  points[i].y);
    end;
- SecondDeriv(in_vector, 1, N, out_vector, WindowSize);
-  for I := 0 to N - 1 do
-   begin
-     line.AddXY(series.XValue[i], out_vector.Elem[i+1]);
-   end;
- Result := line;
- 
- in_vector.Free;
- out_vector.Free;
+ Closefile(f);
 end;
 
-
-procedure TFrmVAH.SDLtrial1Click(Sender: TObject);
+function TFrmVAH.SGFilterAndSecondDerive(series: TChartSeries; window_size,
+  degree, order: integer): TFastLineSeries;
 var
- i: integer;
- diffs: array of TFastLineSeries;
+ i : integer;
+ line, newline: TFastLineSeries;
+ input: TPointVector;
+ output: TDoubleVector;
 begin
- SetLength(diffs, ChartVAH.SeriesCount);
- for I := 0 to ChartVAH.SeriesCount - 1 do
+ line:=TFastLineSeries(series);
+ newline:=TFastLineSeries.Create(nil);
+
+ SetLength(input, line.Count);
+ for i := 0 to line.Count - 1 do
   begin
-  // diffs[i] := SG_get_second_derivative(ChartVAH.Series[i], 12 );
-   diffs[i] := SavGolSecondDerivativeSDL(ChartVAH.Series[i], 25);
-   diffs[i].Title := ChartVAH.Series[i].Title;
-  end;
- ChartVAH.SeriesList.Clear;
- for I := 0 to Length(diffs) - 1 do
-  begin
-   ChartVAH.AddSeries(diffs[i]);
-  end;
- ChartVAH.Repaint;
- was_differentiated := true;
-end;
-
-function TFrmVAH.SG_get_second_derivative(series: TChartSeries; Degree: integer): TFastLineSeries;
- (*
-   Смотрел дико кривой исходник на VB, потому здесь тоже будет кривовато.
-   В душе пока не ебу, что за CumulativeSmooth такой, википедия в методе
-   про такие особенности не говорит. Ещё можно логарифмировать данные на время
-   обработки, но это уже точно от лукавого.
-   Вроде как для наложения сглаживаний.
-
-   'Degree 2 = 5 point
-   'Degree 3 = 7 point ...etc
- *)
-var
- SGCoef : array [1..11, 0..13] of integer;
- i, j : integer;
- tempSum : Double;
- temp : array of double;
- smoothed: array of double;
- line: TFastLineSeries;
- N : integer;
- h : Double;
-begin
- //----------------------------------
- {$REGION 'Savizky-Golay coefficients'}
-
-  SGCoef[1, 1] := -2;
-  SGCoef[1, 2] := -1;
-  SGCoef[1, 3] := 2;
-  SGCoef[1, 0] := 7;
-
-  SGCoef[2, 1] := -4;
-  SGCoef[2, 2] := -3;
-  SGCoef[2, 3] := 0;
-  SGCoef[2, 4] := 5;
-  SGCoef[2, 0] := 42;
-
-  SGCoef[3, 1] := -20;
-  SGCoef[3, 2] := -17;
-  SGCoef[3, 3] := -8;
-  SGCoef[3, 4] := 7;
-  SGCoef[3, 5] := 28;
-  SGCoef[3, 0] := 462;
-
-  SGCoef[4, 1] := -10;
-  SGCoef[4, 2] := -9;
-  SGCoef[4, 3] := -6;
-  SGCoef[4, 4] := -1;
-  SGCoef[4, 5] := 6 ;
-  SGCoef[4, 6] := 15;
-  SGCoef[4, 0] := 429 ;
-
-
-  SGCoef[5, 1] := -14;
-  SGCoef[5, 2] := -13;
-  SGCoef[5, 3] := -10;
-  SGCoef[5, 4] := -5;
-  SGCoef[5, 5] := 2;
-  SGCoef[5, 6] := 11;
-  SGCoef[5, 7] := 22;
-  SGCoef[5, 0] := 1001 ;
-
-  SGCoef[6, 1] := -56;
-  SGCoef[6, 2] := -53;
-  SGCoef[6, 3] := -44;
-  SGCoef[6, 4] := -29;
-  SGCoef[6, 5] := -8;
-  SGCoef[6, 6] := 19;
-  SGCoef[6, 7] := 52;
-  SGCoef[6, 8] := 91;
-  SGCoef[6, 0] := 6188;
-
-  SGCoef[7, 1] := -24;
-  SGCoef[7, 2] := -23;
-  SGCoef[7, 3] := -20;
-  SGCoef[7, 4] := -15;
-  SGCoef[7, 5] := -8;
-  SGCoef[7, 6] := 1;
-  SGCoef[7, 7] := 12;
-  SGCoef[7, 8] := 25;
-  SGCoef[7, 9] := 40;
-  SGCoef[7, 0] := 3876;
-
-  SGCoef[8, 1] := -30;
-  SGCoef[8, 2] := -29;
-  SGCoef[8, 3] := -26;
-  SGCoef[8, 4] := -21;
-  SGCoef[8, 5] := -14;
-  SGCoef[8, 6] := -5;
-  SGCoef[8, 7] := 6;
-  SGCoef[8, 8] := 19;
-  SGCoef[8, 9] := 34;
-  SGCoef[8, 10] := 51;
-  SGCoef[8, 0] := 6783;
-
-  SGCoef[9, 1] := -110;
-  SGCoef[9, 2] := -107;
-  SGCoef[9, 3] := -98;
-  SGCoef[9, 4] := -83;
-  SGCoef[9, 5] := -62;
-  SGCoef[9, 6] := -35;
-  SGCoef[9, 7] := -2;
-  SGCoef[9, 8] := 37;
-  SGCoef[9, 9] := 82;
-  SGCoef[9, 10] := 133;
-  SGCoef[9, 11] := 190;
-  SGCoef[9, 0] := 33649;
-
-  SGCoef[10, 1] := -44;
-  SGCoef[10, 2] := -43;
-  SGCoef[10, 3] := -40;
-  SGCoef[10, 4] := -35;
-  SGCoef[10, 5] := -28;
-  SGCoef[10, 6] := -19;
-  SGCoef[10, 7] := -8;
-  SGCoef[10, 8] := 5;
-  SGCoef[10, 9] := 20;
-  SGCoef[10, 10] := 37;
-  SGCoef[10, 11] := 56;
-  SGCoef[10, 12] := 77;
-  SGCoef[10, 0] := 17710;
-
-  SGCoef[11, 1] := -52;
-  SGCoef[11, 2] := -51;
-  SGCoef[11, 3] := -48;
-  SGCoef[11, 4] := -43;
-  SGCoef[11, 5] := -36;
-  SGCoef[11, 6] := -27;
-  SGCoef[11, 7] := -16;
-  SGCoef[11, 8] := -3;
-  SGCoef[11, 9] := 12;
-  SGCoef[11, 10] := 29;
-  SGCoef[11, 11] := 48;
-  SGCoef[11, 12] := 69;
-  SGCoef[11, 13] := 92;
-  SGCoef[11, 0] := 26910;
-
- {$ENDREGION}
- //----------------------------------
- line := TFastLineSeries.Create(nil);
-
- N:= series.Count;
- SetLength(temp, N );
- SetLength(smoothed, N);
-
- h := series.XValue[12] - series.XValue[11]; // предположим, шаг равномерный
-
- for I := Degree to N - Degree - 1 do
-  begin
-   TempSum := series.YValue[i] * SGCoef[Degree - 1, 1];
-   for J := 1 to Degree do
-    begin
-      TempSum := TempSum + series.YValue[i-j] * SGCoef[Degree - 1, J + 1];
-      TempSum := TempSum + series.YValue[i+j] * SGCoef[Degree - 1, J + 1];
-    end;
-   smoothed[i] := TempSum / SGCoef[Degree - 1, 0];
-   smoothed[i] := 2 * smoothed[i] / (h * h);
+    input[i].x := line.XValues[i];
+    input[i].y := line.YValues[i];
   end;
 
- for I := 0 to Degree - 1 do
-   begin
-    smoothed[i] := smoothed[Degree];
-   end;
- for I := N - Degree to N - 1 do
-   begin
-    smoothed[i] := smoothed[N - Degree - 1];
-   end;
+ output := ApplySGFilterToData(input, window_size, degree, order);
 
- //-------------------------------
- for I := 0 to N - 1 do
-  begin
-    line.AddXY(series.XValue[i],  smoothed[i]);
-  end;
- Result := line;
+ newline.Color:=line.Color;
+ newline.Title:=line.Title;
+ for i := 0 to Length(output) - 1 do
+  newline.AddXY(line.XValue[i], output[i]);
+
+ Result := newline;
 end;
 
 end.

@@ -39,6 +39,7 @@
     <DCCReference Include="IntervalSetter.pas">
       <Form>FrmIntervals</Form>
     </DCCReference>
+    <DCCReference Include="savgol.pas" />
     <DCCReference Include="Settings.pas">
       <Form>FrmSettings</Form>
     </DCCReference>

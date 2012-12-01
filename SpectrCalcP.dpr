@@ -8,7 +8,8 @@ uses
   Chooser in 'Chooser.pas' {FrmChooser},
   SpectrsReader in 'SpectrsReader.pas',
   VAH_tool in 'VAH_tool.pas' {FrmVAH},
-  IntervalSetter in 'IntervalSetter.pas' {FrmIntervals};
+  IntervalSetter in 'IntervalSetter.pas' {FrmIntervals},
+  savgol in 'savgol.pas';
 
 {$R *.res}
 
