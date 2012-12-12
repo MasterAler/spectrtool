@@ -47,6 +47,7 @@
       <Form>FrmMAIN</Form>
     </DCCReference>
     <DCCReference Include="SpectrsReader.pas" />
+    <DCCReference Include="toolUtils.pas" />
     <DCCReference Include="VAH_tool.pas">
       <Form>FrmVAH</Form>
     </DCCReference>

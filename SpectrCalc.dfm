@@ -1,7 +1,7 @@
 object FrmMAIN: TFrmMAIN
   Left = 384
   Top = 74
-  Caption = #1059#1089#1090#1072#1085#1086#1074#1082#1072' "'#1058#1077#1095#1100'". '#1054#1073#1088#1072#1073#1086#1090#1095#1080#1082' '#1089#1087#1077#1082#1090#1088#1072
+  Caption = #1059#1089#1090#1072#1085#1086#1074#1082#1072' "'#1058#1077#1095#1100'". '#1054#1073#1088#1072#1073#1086#1090#1095#1080#1082' '#1089#1087#1077#1082#1090#1088#1086#1074
   ClientHeight = 591
   ClientWidth = 779
   Color = clBtnFace
@@ -43,7 +43,6 @@ object FrmMAIN: TFrmMAIN
       item
         Width = 50
       end>
-    ExplicitTop = 552
   end
   object Panel1: TPanel
     Left = 113
@@ -52,7 +51,6 @@ object FrmMAIN: TFrmMAIN
     Height = 497
     Align = alClient
     TabOrder = 1
-    ExplicitHeight = 477
     object ChartOut: TChart
       Left = 1
       Top = 1
@@ -68,7 +66,9 @@ object FrmMAIN: TFrmMAIN
       OnClickLegend = ChartOutClickLegend
       OnClickSeries = ChartOutClickSeries
       BottomAxis.Title.Caption = #1044#1083'.'#1074#1086#1083#1085#1099', '#1085#1084
-      LeftAxis.Title.Caption = 'I,mA'
+      LeftAxis.Title.Caption = 'I'
+      LeftAxis.Title.Font.Charset = ANSI_CHARSET
+      LeftAxis.Title.Font.Name = 'Perpetua Titling MT'
       Zoom.Animated = True
       Align = alClient
       TabOrder = 0
@@ -76,7 +76,6 @@ object FrmMAIN: TFrmMAIN
       OnMouseLeave = ChartOutMouseLeave
       OnMouseMove = ChartOutMouseMove
       OnMouseUp = ChartOutMouseUp
-      ExplicitHeight = 475
     end
   end
   object Panel2: TPanel
@@ -86,7 +85,6 @@ object FrmMAIN: TFrmMAIN
     Height = 72
     Align = alBottom
     TabOrder = 2
-    ExplicitTop = 480
     object SGStats: TStringGrid
       Left = 1
       Top = 1
@@ -131,7 +129,6 @@ object FrmMAIN: TFrmMAIN
     OnMouseMove = ValueListSpectrMouseMove
     OnMouseUp = ValueListSpectrMouseUp
     OnValidate = ValueListSpectrValidate
-    ExplicitHeight = 477
     ColWidths = (
       38
       69)

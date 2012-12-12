@@ -9,7 +9,8 @@ uses
   SpectrsReader in 'SpectrsReader.pas',
   VAH_tool in 'VAH_tool.pas' {FrmVAH},
   IntervalSetter in 'IntervalSetter.pas' {FrmIntervals},
-  savgol in 'savgol.pas';
+  savgol in 'savgol.pas',
+  toolUtils in 'toolUtils.pas';
 
 {$R *.res}
 

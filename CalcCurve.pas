@@ -4,19 +4,10 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, ExtCtrls, TeeProcs, TeEngine, Chart, Series, Menus, ap, lsfit, IntervalSetter ;
+  Dialogs, ExtCtrls, TeeProcs, TeEngine, Chart, Series, Menus, ap, lsfit, IntervalSetter,
+  toolUtils ;
 
 type
-  TLineType = (ltAll = -1, ltHot = 3, ltEntire = 9, ltStantard = 12 );
-  TNumInterval = record
-    _from: integer;
-    _to: integer;
-  end;
-  TPointArr = array of TPointFloat;
-  TLinearCoeffs = record
-     A,B: double;
-     err: double;
-  end;
   TFrmCurves = class(TForm)
     ChartCurves: TChart;
     MenuCurves: TMainMenu;
@@ -52,16 +43,9 @@ type
     procedure N10Click(Sender: TObject);
   private
     { Private declarations }
-    function CalcLSforData(data : TPointArr):TLinearCoeffs;
-    //обертки
-    function CalcLSforCurve(seriesnum: integer):TLinearCoeffs;
-    function CalcLSforCurvePart(seriesnum: integer; left, right: integer):TLinearCoeffs;
   public
     { Public declarations }
-    procedure ClearFastlines(tag : TLineType = ltAll);
     function RecalcTemperarureCurves():boolean;
-    function SeriesToPointArr( series: TChartSeries): TPointArr;
-    function SeriesPartToPointArr( series: TChartSeries; left, right: integer): TPointArr;
   end;
 
 var
@@ -74,13 +58,6 @@ implementation
 uses SpectrCalc, Settings, Math;
 
 {$R *.dfm}
-
-function TFrmCurves.CalcLSforCurve(seriesnum: integer): TLinearCoeffs;
-begin
- if (seriesnum<0) or (seriesnum>=ChartCurves.SeriesList.Count) then Exit;
-
- Result := CalcLSforData( SeriesToPointArr(ChartCurves.Series[seriesnum]) );
-end;
 
 function TFrmCurves.RecalcTemperarureCurves():boolean;
 var
@@ -120,38 +97,6 @@ begin
  Result:=true;
 end;
 
-function TFrmCurves.SeriesPartToPointArr(series: TChartSeries; left,
-  right: integer): TPointArr;
-var
- res: TPointArr;
- i: integer;
-begin
- Result := nil;
- if (left > right) or (left <= 0) or (right > series.Count)  then Exit;
-
- SetLength(res, right - left + 1);
-  for I := left to right do
-  begin
-    res[i - left].X := series.XValue[i-1];
-    res[i - left].Y := series.YValue[i-1];
-  end;
- Result:=res;
-end;
-
-function TFrmCurves.SeriesToPointArr(series: TChartSeries): TPointArr;
-var
- res: TPointArr;
- i: integer;
-begin
- SetLength(res, series.Count);
- for I := 0 to series.Count - 1 do
-  begin
-    res[i].X := series.XValue[i];
-    res[i].Y := series.YValue[i];
-  end;
- Result:=res;
-end;
-
 procedure TFrmCurves.ChartCurvesMouseMove(Sender: TObject; Shift: TShiftState;
   X, Y: Integer);
 var
@@ -178,50 +123,6 @@ begin
   end;
 end;
 
-procedure TFrmCurves.ClearFastlines(tag : TLineType);
-  {
-   Защищает от многократных нажатий на обработки кривых,
-   график не засоряется,а пересчитывается. Сходу хрен поймешь, но
-   идея в том, что данные - это TLineSeries, а МНК - TFastLineSeries.
-   Для разных МНК придется обходится опознавательными значениями Tag.
-  }
-var
- b : boolean;
- k: integer;
-begin
- b:=false; k:=0;
- if tag=ltAll then
-  begin
-   //--------
-   while not b do
-    begin
-     if (ChartCurves.Series[k] is TFastLineSeries) then
-      begin
-       ChartCurves.SeriesList.Delete(k);
-       k:=0;
-      end;
-     Inc(k);
-     if (k=ChartCurves.SeriesList.Count) then b:=true;
-    end;
-   //-----------
-  end
- else
-  begin
-  //-----
-   while not b do
-    begin
-     if (ChartCurves.Series[k] is TFastLineSeries) and (ChartCurves.Series[k].Tag = Integer(tag) ) then
-      begin
-       ChartCurves.SeriesList.Delete(k);
-       k:=0;
-      end;
-     Inc(k);
-     if (k=ChartCurves.SeriesList.Count) then b:=true;
-    end;
-   //---------
-  end;
-end;
-
 procedure TFrmCurves.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
  Action:=caHide;
@@ -236,62 +137,6 @@ begin
  second._to := 23;
 end;
 
-function TFrmCurves.CalcLSforCurvePart(seriesnum, left, right: integer): TLinearCoeffs;
-{
-  Ахтунг!! считается, что на графике значащих точек по числу пиков,
-  отсчитываем их по штукам, без операций с координатами.
-  Нумерация от 1 начинается.
-}
-begin
- if (seriesnum < 0) or (seriesnum >= ChartCurves.SeriesList.Count)
-  or (left > right) or (left <= 0) or (right > ChartCurves.Series[seriesnum].Count)
-    then raise Exception.Create('bad borders');
-
- Result := CalcLSforData( SeriesPartToPointArr(ChartCurves.Series[seriesnum], left, right) );
-end;
-
-function TFrmCurves.CalcLSforData(data: TPointArr): TLinearCoeffs;
-var
- M : AlglibInteger;
- N : AlglibInteger;
- Y : TReal1DArray;
- FMatrix : TReal2DArray;
- Rep : LSFitReport;
- Info : AlglibInteger;
- C : TReal1DArray;
- I : AlglibInteger;
- J : AlglibInteger;
- X : Double;
-begin
- if (Length(data) <= 0) then Exit;
-
- M := 2;
- N := Length(data);
-
- SetLength(Y, N);
- SetLength(FMatrix, N, M);
- I:=0;
- while I<=N-1 do
-  begin
-   X :=  data[i].X;
-   Y[I] := data[i].Y;
-   FMatrix[I,0] := 1.0;
-   J:=1;
-   while J<=M-1 do
-    begin
-     FMatrix[I,J] := X*FMatrix[I,J-1];
-     Inc(J);
-    end;
-   Inc(I);
- end;
-
- LSFitLinear(Y, FMatrix, N, M, Info, C, Rep);
-
- Result.A:=C[1];
- Result.B:=C[0];
- Result.err:=Rep.AvgRelError;
-end;
-
 procedure TFrmCurves.ChartCurvesClickSeries(Sender: TCustomChart;
   Series: TChartSeries; ValueIndex: Integer; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
@@ -301,7 +146,7 @@ end;
 
 procedure TFrmCurves.N10Click(Sender: TObject);
 begin
- ClearFastlines();
+ ClearFastlines(ChartCurves);
  ChartCurves.Repaint;
 end;
 
@@ -317,7 +162,7 @@ var
  linearfit1, linearfit2 : TFastLineSeries;
  x,y: double;
 begin
-  ClearFastlines(ltStantard);
+  ClearFastlines(ChartCurves, ltStantard);
 
  {
   Тут, кстати, в 2 местах написан лютый адъ : цикл идет по размеру
@@ -330,8 +175,8 @@ begin
    linearfit1:=TFastLineSeries.Create(nil);
    linearfit2:=TFastLineSeries.Create(nil);
    try
-     res1:=CalcLSforCurvePart(i, first._from, first._to);
-     res2:=CalcLSforCurvePart(i, second._from, second._to);
+     res1:=CalcLSforCurvePart(ChartCurves, i, first._from, first._to);
+     res2:=CalcLSforCurvePart(ChartCurves, i, second._from, second._to);
    except
     MessageDlg('Исправьте диапазоны',mtError,[mbOK],0);
     Break;
@@ -394,20 +239,20 @@ var
  linearfit: TFastLineSeries;
  x,y: double;
 begin
- ClearFastlines(ltEntire);
+ ClearFastlines(ChartCurves, ltEntire);
 
  for I := 0 to ChartCurves.SeriesList.Count - 1 do
   begin
    if (ChartCurves.Series[i] is TFastLineSeries) then Continue;
    linearfit:=TFastLineSeries.Create(nil);
-   res:=CalcLSforCurve(i);
+   res:=CalcLSforCurve(ChartCurves, i);
    for J := 0 to ChartCurves.Series[i].Count - 1 do
     begin
      x:=ChartCurves.Series[i].XValue[J];
      y:=res.A*x+res.B;
      linearfit.AddXY(x,y);
     end;
-   linearfit.Tag := 9; // а вот потому что
+   linearfit.Tag := Integer(ltEntire); // а вот потому что
    linearfit.Color:=ChartCurves.Series[i].Color;
    linearfit.Title:='y=-Ax+B; 1/A= '+FloatToStrF(-1/res.A,ffGeneral,4,5)+
      '  B= '+FloatToStrF(res.B,ffGeneral,4,5)+' err= '+FloatToStrF(res.err,ffGeneral,4,5);
@@ -430,8 +275,7 @@ var
  linearfit2 : TFastLineSeries;
  x,y: double;
 begin
-  ClearFastlines(ltHot);
-
+  ClearFastlines(ChartCurves, ltHot);
  {
   Тут, кстати, в 2 местах написан лютый адъ : цикл идет по размеру
   списка, который в Delphi записывается границей 1 раз. При этом серии,
@@ -442,7 +286,7 @@ begin
    if (ChartCurves.Series[i] is TFastLineSeries) then Continue;
    linearfit2:=TFastLineSeries.Create(nil);
    try
-     res2:=CalcLSforCurvePart(i, second._from, second._to);
+     res2:=CalcLSforCurvePart(ChartCurves, i, second._from, second._to);
    except
     MessageDlg('Исправьте диапазоны',mtError,[mbOK],0);
     Break;

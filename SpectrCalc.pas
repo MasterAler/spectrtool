@@ -659,7 +659,7 @@ var
 begin
  path:=GetCurrentDir+CHMHelpFile;
  if not FileExists(path) then
-  MessageDlg('TODO: впишите что хотите, или что надо',mtInformation,[mbOK],0)
+  MessageDlg('«апуск из программы не удалс€, откройте прилагающийс€ файл справки вручную',mtInformation,[mbOK],0)
  else
   ShellExecute(0,'open',PChar(path),nil,nil,SW_SHOWNORMAL);
 end;
