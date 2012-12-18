@@ -6,6 +6,8 @@ uses
  Windows, Dialogs, SysUtils, Variants, Classes, ShellAPI, ShlObj, Math,
   TeeProcs, TeEngine, Chart, Series, ap, lsfit, savgol ;
 
+const
+ ERROR_DIR = '#?:ERROR_DIR:?#';
 type
   TLineType = (ltAll = -1, ltHot = 3, ltEntire = 9, ltStantard = 12, ltData = 15 );
   TProcessType = (ptNone = -1, ptMNK, ptDiff1, ptDiff2, ptInvert, ptTheory);
@@ -204,7 +206,7 @@ begin
 
  if lpItemId = nil then
   begin
-    MessageDlg('Путь сохранения не выбран!', mtInformation, [mbOK], 0);
+    Result:=ERROR_DIR;
     Exit;
   end;
 
@@ -224,7 +226,14 @@ var
 begin
 
  dir:=SelectFolder;
+
+ if dir = ERROR_DIR then
+  begin
+   MessageDlg('Не выбрана папка для сохранения файлов!', mtInformation, [mbOK], 0);
+   Exit;
+  end;
  
+
  for i := 0 to chart.SeriesCount - 1 do
    begin
     SetLength(points, chart.Series[i].Count);
@@ -235,6 +244,8 @@ begin
       end;
     SaveSeriesPointsCSV(points, dir + '\' + chart.Series[i].Title, fTag);
    end;
+
+ MessageDlg('Данные успешно сохранены!', mtInformation, [mbOK], 0);
 end;
 
 end.

@@ -34,7 +34,6 @@ type
     N9: TMenuItem;
     N10: TMenuItem;
     N11: TMenuItem;
-    N15: TMenuItem;
     SaveDialogCSV: TSaveDialog;
     N16: TMenuItem;
     N17: TMenuItem;
@@ -53,7 +52,6 @@ type
     procedure N10Click(Sender: TObject);
     procedure N9Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
-    procedure N15Click(Sender: TObject);
     procedure N17Click(Sender: TObject);
     procedure N19Click(Sender: TObject);
     procedure N18Click(Sender: TObject);
@@ -71,6 +69,9 @@ type
     procedure N13Click(Sender: TObject);
     procedure N14Click(Sender: TObject);
     procedure N21Click(Sender: TObject);
+    procedure ChartVAHClickSeries(Sender: TCustomChart; Series: TChartSeries;
+      ValueIndex: Integer; Button: TMouseButton; Shift: TShiftState; X,
+      Y: Integer);
   private
     { Private declarations }
   public
@@ -182,7 +183,7 @@ procedure TFrmVAH.ChartVAHAfterDraw(Sender: TObject);
 var
  x1, x2 : integer;
 begin
- if show_cuts then 
+ if show_cuts then
   begin
    x1:= GetCut1;
    x2:= GetCut2;
@@ -198,10 +199,17 @@ begin
   end;
 end;
 
+procedure TFrmVAH.ChartVAHClickSeries(Sender: TCustomChart;
+  Series: TChartSeries; ValueIndex: Integer; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+begin
+ if (Button=mbRight) then Series.Free;
+end;
+
 procedure TFrmVAH.ChartVAHMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 const
- Eps = 3;
+ Eps = 5;
 var
  x1, x2 : integer;
 begin
@@ -346,7 +354,7 @@ var
 begin
  if ChartVAH.SeriesCount = 0 then Exit;
  
- if processed = ptDiff2 then
+ if was_processed then
   begin
 
    SetLength(diffs, ChartVAH.SeriesCount);
@@ -384,14 +392,6 @@ begin
   end;
 end;
 
-procedure TFrmVAH.N15Click(Sender: TObject);
-begin
- if ChartVAH.SeriesCount = 0 then Exit;
-
- SaveSeriesToCSVs(ChartVAH, '_CH');
- MessageDlg('Данные успешно сохранены!', mtInformation, [mbOK], 0);
-end;
-
 procedure TFrmVAH.N16Click(Sender: TObject);
 const
  fTag = '_SVD';
@@ -399,7 +399,6 @@ begin
  if ChartVAH.SeriesCount = 0 then Exit;
 
  SaveSeriesToCSVs(ChartVAH, fTag);
- MessageDlg('Данные успешно сохранены!', mtInformation, [mbOK], 0);
 end;
 
 procedure TFrmVAH.N17Click(Sender: TObject);
@@ -516,9 +515,10 @@ var
  i, j: integer;
  line : TFastLineSeries;
  sr: TChartSeries;
- y_norm_coeff, {x_norm_coeff,} x_delta: double;
+ y_norm_coeff: double;
+ x_max: double;
 begin
- if (ChartVAH.SeriesCount = 0) or (processed <> ptInvert) then Exit;
+ if (ChartVAH.SeriesCount = 0) or (not was_processed) then Exit;
 
  //В плоском виде гораздо нагляднее
  ChartVAH.View3D := false;
@@ -531,18 +531,19 @@ begin
  for i := 1 to 33 do
     line.AddXY(SCurve[i,1], SCurve[i, 2]);
 
+ x_max:=ChartVAH.Series[0].MaxXValue;
  for i := 0 to ChartVAH.SeriesCount - 1 do
   begin
    sr := ChartVAH.Series[i];
    y_norm_coeff := line.MaxYValue / sr.MaxYValue;
-   //x_norm_coeff := (line.MaxXValue - line.MinXValue) / (sr.MaxXValue - sr.MinXValue);
-   x_delta := line.MinXValue - sr.MinXValue;
    for j := 0 to sr.Count - 1 do
-    begin
      sr.YValues[j] := sr.YValues[j] * y_norm_coeff;
-     sr.XValues[j] := x_delta + sr.XValues[j] {* x_norm_coeff};
-    end;
+
+   if sr.MaxXValue > x_max then x_max := sr.MaxXValue;
   end;
+
+ while line.XValue[line.Count-2] > x_max do
+      line.Delete(line.Count-1);
 
  ChartVAH.AddSeries(line);
  ChartVAH.Repaint;

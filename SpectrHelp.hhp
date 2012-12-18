@@ -2,6 +2,7 @@
 Compatibility=1.1 or later
 Compiled file=SpectrHelp.chm
 Contents file=Table of Contents.hhc
+Default topic=1.html
 Display compile progress=No
 Language=0x419 Русский (Россия)
 
@@ -10,6 +11,7 @@ Language=0x419 Русский (Россия)
 1.html
 2.html
 3.html
+4.html
 
 [INFOTYPES]
 

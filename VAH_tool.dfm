@@ -2,7 +2,7 @@ object FrmVAH: TFrmVAH
   Left = 114
   Top = 118
   Caption = #1054#1073#1088#1072#1073#1086#1090#1082#1072' '#1089#1086' '#1089#1075#1083#1072#1078#1080#1074#1072#1085#1080#1077#1084' '#1082#1088#1080#1074#1099#1093' '#1042#1040#1061
-  ClientHeight = 501
+  ClientHeight = 541
   ClientWidth = 563
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -20,11 +20,12 @@ object FrmVAH: TFrmVAH
     Left = 0
     Top = 0
     Width = 563
-    Height = 501
+    Height = 541
     Legend.Alignment = laTop
     Legend.CheckBoxes = True
     Title.Text.Strings = (
       'TChart')
+    OnClickSeries = ChartVAHClickSeries
     BottomAxis.Title.Caption = 'CH1'
     LeftAxis.Title.Caption = 'CH2'
     OnAfterDraw = ChartVAHAfterDraw
@@ -34,7 +35,7 @@ object FrmVAH: TFrmVAH
     OnMouseLeave = ChartVAHMouseLeave
     OnMouseMove = ChartVAHMouseMove
     OnMouseUp = ChartVAHMouseUp
-    ExplicitHeight = 481
+    ExplicitHeight = 521
     PrintMargins = (
       15
       21
@@ -216,10 +217,6 @@ object FrmVAH: TFrmVAH
       object N20: TMenuItem
         Caption = #1054#1073#1088#1077#1079#1072#1090#1100
         OnClick = N20Click
-      end
-      object N15: TMenuItem
-        Caption = #1057#1086#1093#1088#1072#1085#1080#1090#1100' '#1080#1079#1084#1077#1085#1077#1085#1080#1103
-        OnClick = N15Click
       end
     end
   end
