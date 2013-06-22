@@ -46,6 +46,7 @@ type
     N21: TMenuItem;
     X1: TMenuItem;
     N15: TMenuItem;
+    Y1: TMenuItem;
     procedure N2Click(Sender: TObject);
     procedure N4Click(Sender: TObject);
     procedure N8Click(Sender: TObject);
@@ -75,6 +76,7 @@ type
       ValueIndex: Integer; Button: TMouseButton; Shift: TShiftState; X,
       Y: Integer);
     procedure X1Click(Sender: TObject);
+    procedure Y1Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -797,6 +799,28 @@ procedure TFrmVAH.X1Click(Sender: TObject);
 begin
  X1.Checked := not X1.Checked;
  ChartVAH.BottomAxis.Logarithmic := not ChartVAH.BottomAxis.Logarithmic;
+end;
+
+procedure TFrmVAH.Y1Click(Sender: TObject);
+var
+ i, j: integer;
+begin
+ Y1.Checked := not Y1.Checked;
+ if not ChartVAH.LeftAxis.Logarithmic then
+  begin
+    for I := 0 to ChartVAH.SeriesCount - 1 do
+      begin
+       j := 0;
+       while j < ChartVAH.Series[i].Count do
+        begin
+          if ChartVAH.Series[i].YValue[j] < 0 then
+            ChartVAH.Series[i].Delete(j)
+          else
+            Inc(j);
+        end;
+      end;
+  end;
+ ChartVAH.LeftAxis.Logarithmic := not ChartVAH.LeftAxis.Logarithmic;
 end;
 
 end.

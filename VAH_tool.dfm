@@ -35,7 +35,6 @@ object FrmVAH: TFrmVAH
     OnMouseLeave = ChartVAHMouseLeave
     OnMouseMove = ChartVAHMouseMove
     OnMouseUp = ChartVAHMouseUp
-    ExplicitHeight = 581
     PrintMargins = (
       15
       21
@@ -191,6 +190,10 @@ object FrmVAH: TFrmVAH
       object X1: TMenuItem
         Caption = #1051#1086#1075#1072#1088#1080#1092#1084#1080#1095#1077#1089#1082#1072#1103' '#1086#1089#1100' X'
         OnClick = X1Click
+      end
+      object Y1: TMenuItem
+        Caption = #1051#1086#1075#1072#1088#1080#1092#1084#1080#1095#1077#1089#1082#1072#1103' '#1086#1089#1100' Y'
+        OnClick = Y1Click
       end
       object N8: TMenuItem
         Bitmap.Data = {

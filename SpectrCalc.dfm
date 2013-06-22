@@ -2,7 +2,7 @@ object FrmMAIN: TFrmMAIN
   Left = 384
   Top = 74
   Caption = #1059#1089#1090#1072#1085#1086#1074#1082#1072' "'#1058#1077#1095#1100'". '#1054#1073#1088#1072#1073#1086#1090#1095#1080#1082' '#1089#1087#1077#1082#1090#1088#1086#1074
-  ClientHeight = 591
+  ClientHeight = 611
   ClientWidth = 779
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -19,7 +19,7 @@ object FrmMAIN: TFrmMAIN
   TextHeight = 13
   object Separator: TSplitter
     Left = 0
-    Top = 497
+    Top = 517
     Width = 779
     Height = 3
     Cursor = crVSplit
@@ -28,7 +28,7 @@ object FrmMAIN: TFrmMAIN
   end
   object StatusMain: TStatusBar
     Left = 0
-    Top = 572
+    Top = 592
     Width = 779
     Height = 19
     Panels = <
@@ -43,19 +43,21 @@ object FrmMAIN: TFrmMAIN
       item
         Width = 50
       end>
+    ExplicitTop = 572
   end
   object Panel1: TPanel
     Left = 113
     Top = 0
     Width = 666
-    Height = 497
+    Height = 517
     Align = alClient
     TabOrder = 1
+    ExplicitHeight = 497
     object ChartOut: TChart
       Left = 1
       Top = 1
       Width = 664
-      Height = 495
+      Height = 515
       BackWall.Brush.Color = clWhite
       BackWall.Brush.Style = bsClear
       Legend.Alignment = laTop
@@ -76,15 +78,17 @@ object FrmMAIN: TFrmMAIN
       OnMouseLeave = ChartOutMouseLeave
       OnMouseMove = ChartOutMouseMove
       OnMouseUp = ChartOutMouseUp
+      ExplicitHeight = 495
     end
   end
   object Panel2: TPanel
     Left = 0
-    Top = 500
+    Top = 520
     Width = 779
     Height = 72
     Align = alBottom
     TabOrder = 2
+    ExplicitTop = 500
     object SGStats: TStringGrid
       Left = 1
       Top = 1
@@ -114,7 +118,7 @@ object FrmMAIN: TFrmMAIN
     Left = 0
     Top = 0
     Width = 113
-    Height = 497
+    Height = 517
     Align = alLeft
     KeyOptions = [keyEdit, keyAdd, keyDelete, keyUnique]
     Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goDrawFocusSelected, goColSizing, goEditing, goThumbTracking]
@@ -129,6 +133,7 @@ object FrmMAIN: TFrmMAIN
     OnMouseMove = ValueListSpectrMouseMove
     OnMouseUp = ValueListSpectrMouseUp
     OnValidate = ValueListSpectrValidate
+    ExplicitHeight = 497
     ColWidths = (
       38
       69)
