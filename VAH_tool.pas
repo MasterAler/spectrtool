@@ -44,6 +44,8 @@ type
     N13: TMenuItem;
     N14: TMenuItem;
     N21: TMenuItem;
+    X1: TMenuItem;
+    N15: TMenuItem;
     procedure N2Click(Sender: TObject);
     procedure N4Click(Sender: TObject);
     procedure N8Click(Sender: TObject);
@@ -72,6 +74,7 @@ type
     procedure ChartVAHClickSeries(Sender: TCustomChart; Series: TChartSeries;
       ValueIndex: Integer; Button: TMouseButton; Shift: TShiftState; X,
       Y: Integer);
+    procedure X1Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -788,6 +791,12 @@ begin
   newline.AddXY(line.XValue[i], output[i]);
 
  Result := newline;
+end;
+
+procedure TFrmVAH.X1Click(Sender: TObject);
+begin
+ X1.Checked := not X1.Checked;
+ ChartVAH.BottomAxis.Logarithmic := not ChartVAH.BottomAxis.Logarithmic;
 end;
 
 end.

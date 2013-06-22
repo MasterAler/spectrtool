@@ -2,7 +2,7 @@ object FrmVAH: TFrmVAH
   Left = 114
   Top = 118
   Caption = #1054#1073#1088#1072#1073#1086#1090#1082#1072' '#1089#1086' '#1089#1075#1083#1072#1078#1080#1074#1072#1085#1080#1077#1084' '#1082#1088#1080#1074#1099#1093' '#1042#1040#1061
-  ClientHeight = 541
+  ClientHeight = 601
   ClientWidth = 563
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -20,7 +20,7 @@ object FrmVAH: TFrmVAH
     Left = 0
     Top = 0
     Width = 563
-    Height = 541
+    Height = 601
     Legend.Alignment = laTop
     Legend.CheckBoxes = True
     Title.Text.Strings = (
@@ -35,7 +35,7 @@ object FrmVAH: TFrmVAH
     OnMouseLeave = ChartVAHMouseLeave
     OnMouseMove = ChartVAHMouseMove
     OnMouseUp = ChartVAHMouseUp
-    ExplicitHeight = 521
+    ExplicitHeight = 581
     PrintMargins = (
       15
       21
@@ -184,6 +184,13 @@ object FrmVAH: TFrmVAH
       object N21: TMenuItem
         Caption = #1057#1088#1072#1074#1085#1080#1090#1100' '#1089' '#1101#1090#1072#1083#1086#1085#1086#1084
         OnClick = N21Click
+      end
+      object N15: TMenuItem
+        Caption = '-'
+      end
+      object X1: TMenuItem
+        Caption = #1051#1086#1075#1072#1088#1080#1092#1084#1080#1095#1077#1089#1082#1072#1103' '#1086#1089#1100' X'
+        OnClick = X1Click
       end
       object N8: TMenuItem
         Bitmap.Data = {
