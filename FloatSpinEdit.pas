@@ -29,7 +29,6 @@ type TFloatSpinEdit = class(TCustomEdit)
     procedure WMPaste(var Message: TWMPaste);   message WM_PASTE;
     procedure WMCut(var Message: TWMCut);   message WM_CUT;
   protected
-    procedure GetChildren(Proc: TGetChildProc; Root: TComponent); override;
     function IsValidChar(Key: Char): Boolean; virtual;
     procedure UpClick (Sender: TObject); virtual;
     procedure DownClick (Sender: TObject); virtual;
@@ -41,6 +40,7 @@ type TFloatSpinEdit = class(TCustomEdit)
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     property Button: TSpinButton read FButton;
+    procedure GetChildren(Proc: TGetChildProc; Root: TComponent); override;
   published
     property Anchors;
     property AutoSelect;

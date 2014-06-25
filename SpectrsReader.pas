@@ -92,7 +92,7 @@ type
   procedure Read(handle: Cardinal);
   constructor Create;
   destructor Destroy; override;
-  function ToString():string;
+  function ToString():string; override;
  end;
 
  TAttribs=class(TInterfacedObject,ICurveReader)

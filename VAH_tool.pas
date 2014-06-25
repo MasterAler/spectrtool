@@ -47,6 +47,8 @@ type
     X1: TMenuItem;
     N15: TMenuItem;
     Y1: TMenuItem;
+    dat1: TMenuItem;
+    OpenDialogDat: TOpenDialog;
     procedure N2Click(Sender: TObject);
     procedure N4Click(Sender: TObject);
     procedure N8Click(Sender: TObject);
@@ -77,6 +79,7 @@ type
       Y: Integer);
     procedure X1Click(Sender: TObject);
     procedure Y1Click(Sender: TObject);
+    procedure dat1Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -86,6 +89,7 @@ type
     procedure AddSeriesFromFilteredFile(filename: string);
     procedure SavePointClassList(list: TStringList; filename: string);
     function LoadAndFilterData(filename: string): TStringList;
+    function LoadAndFilterDatFileData(filename: string): TStringList;
     procedure AddSeries( X,Y : TDoublrArr; title: string );  overload;
     procedure AddSeries(list: TStringList; title: string); overload;
     //--- Долбаный Savitzky-Golay, всё-таки побежал----
@@ -133,6 +137,18 @@ begin
  Delete(line, 1, ind);
  res.var3 := line;
  Result := res;
+end;
+
+function Parse2Params(line: string): TPointFloat;
+var
+ ind : integer;
+ format : TFormatSettings;
+begin
+ GetLocaleFormatSettings(419, format);
+ ind := Pos(#9, line);
+ Result.x := StrToFloat(Copy(line, 1, ind - 1), format);
+ Delete(line, 1, ind);
+ Result.y := StrToFloat(line, format);
 end;
 
 procedure TFrmVAH.AddSeries(list: TStringList; title: string );
@@ -674,7 +690,84 @@ begin
 
   end;
  CloseFile(f);
- 
+
+ Result := list;
+end;
+
+function TFrmVAH.LoadAndFilterDatFileData(filename: string): TStringList;
+var
+ f : TextFile;
+ list: TStringList;
+ str: string;
+ t_min, t_max, tt : integer;
+ x_min, x_max, xx : Double;
+ val, next, proxy : TPointFloat_cl;
+ point: TPointFloat;
+begin
+ if  not FileExists(filename) then raise Exception.Create('File not found');
+ AssignFile(f, filename);
+
+  //-----Ищем габариты----
+ Reset(f);
+ Readln(f, str);
+ point := Parse2Params(str);
+ t_min := 1;
+ t_max := 1;
+ tt := 0;
+ x_min := point.x;
+ x_max := point.y;
+ while not Eof(f) do
+  begin
+   Readln(f, str); Inc(tt);
+   point := Parse2Params(str);
+   xx := point.x;
+   if (xx > x_max) then
+    begin
+     t_max:=tt;
+     x_max:=xx;
+    end;
+   if (xx < x_min) then
+    begin
+     t_min:=tt;
+     x_min:=xx;
+    end;
+  end;
+ CloseFile(f);
+ //----------------------
+
+ Reset(f);
+ Readln(f, str);
+ //------сначала с повторениями-----
+ list:=TStringList.Create;
+ val := TPointFloat_cl.Create;
+ next := TPointFloat_cl.Create;
+ // первый
+ tt := 0;
+ repeat
+   Readln(f,str); Inc(tt);
+   point := Parse2Params(str);
+   val.x := point.x;
+   val.y := point.y;
+ until (tt >= t_min);
+
+ while not Eof(f) do
+  begin
+   Readln(f,str); Inc(tt);
+   point := Parse2Params(str);
+   next.x := point.x;
+   next.y := point.y;
+   if(tt >= t_max) then Break;
+
+    proxy := TPointFloat_cl.Create;
+    proxy.x := val.x;
+    proxy.y := val.y;
+    list.AddObject(floattostr(val.x), TObject(proxy) );
+    val.x := next.x;
+    val.y := next.y;
+
+  end;
+ CloseFile(f);
+
  Result := list;
 end;
 
@@ -728,6 +821,45 @@ begin
    Delete(fn,Length(fn)-3, 4);
    SavePointclassList(list,
      ExtractFilePath(OpenDialogCSV.FileName) + fn + ' - filtered.csv' );
+   //-------и прибираем за собой----
+   for I := 0 to List.Count - 1 do
+   begin
+     list.Objects[i].Free;
+   end;
+   list.Clear;
+   list.Free;
+   processed := ptNone;
+  end
+ else MessageDlg('Файл не выбран!',mtInformation,[mbOK],0);
+end;
+
+procedure TFrmVAH.dat1Click(Sender: TObject);
+var
+ i: integer;
+ list : TStringList;
+ fn: string;
+begin
+ if was_processed then
+  begin
+    ChartVAH.SeriesList.Clear;
+    was_processed:=false;
+  end;
+ if OpenDialogDat.Execute then
+  begin
+     try
+      list := LoadAndFilterDatFileData(OpenDialogDat.FileName);
+     except
+      MessageDlg('Файл не найден!',mtError,[mbOK],0);
+      Exit;
+     end;
+   fn :=  ExtractFileName(OpenDialogDat.FileName);
+   if (Pos('.dat', fn)<>0) or (Pos('.DAT', fn)<>0) then
+     Delete(fn, Length(fn)-3, 4);
+   AddSeries(list, fn);
+   //-------Сохраняем чистенькое-------
+   Delete(fn,Length(fn)-3, 4);
+   SavePointClassList(list,
+     ExtractFilePath(OpenDialogDat.FileName) + fn + ' - filtered.csv' );
    //-------и прибираем за собой----
    for I := 0 to List.Count - 1 do
    begin
