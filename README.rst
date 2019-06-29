@@ -14,7 +14,7 @@
 
  Как оно сейчас выглядит:
  
- .. figure:: https://dl.dropbox.com/u/13160004/ScreenClip3.png
+ .. figure:: https://www.dropbox.com/s/c2cdq5qu1eqw0g1/ScreenClip3.png
     :height: 350
     :width: 700
     :alt: скриншот
