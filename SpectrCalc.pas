@@ -12,17 +12,18 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, Menus, ComCtrls, ExtCtrls, TeeProcs, TeEngine, Chart, StdCtrls,
-  Grids, ValEdit, ShellAPI, Series, ExtDlgs, CalcCurve, Settings, Chooser, Contnrs, XPMan;
+  Grids, ValEdit, ShellAPI, Series, ExtDlgs, CalcCurve, Settings, Chooser, VAH_tool,
+  Contnrs, XPMan;
 
 const
  TableFile='TableValues.txt';
  SettingFile='Coeffs.txt';
- CHMHelpFile='.\SpectrHelp.chm';
+ CHMHelpFile='\SpectrHelp.chm';
  AddColSign=' +';
  StatActionArray: array [1..1] of string[7] = ('Average');
  //список команд статистики можно расширять
 type
-    TVLEDragType=(vleFrom,vleTo,vleNone);
+    TVLEDragType = (vleFrom,vleTo,vleNone);
     PeakPos=packed record
      x,y: real;
     end;
@@ -44,6 +45,12 @@ type
       row: TStringList;
      end;
      PSortPair=^TSortPair;
+    //---------------------------
+     TMarkDrag=record
+      ser_id : integer;
+      mark_id: integer;
+      in_process: boolean;
+     end;
   TFrmMAIN = class(TForm)
     MainMenu: TMainMenu;
     Af1: TMenuItem;
@@ -71,7 +78,7 @@ type
     N16: TMenuItem;
     N17: TMenuItem;
     Panel2: TPanel;
-    Splitter1: TSplitter;
+    Separator: TSplitter;
     N18: TMenuItem;
     SGStats: TStringGrid;
     PopupMenuStats: TPopupMenu;
@@ -81,6 +88,11 @@ type
     N21: TMenuItem;
     N22: TMenuItem;
     N23: TMenuItem;
+    Origin1: TMenuItem;
+    N24: TMenuItem;
+    Origin2: TMenuItem;
+    N25: TMenuItem;
+    N26: TMenuItem;
     procedure N1Click(Sender: TObject);
     procedure N7Click(Sender: TObject);
     procedure N8Click(Sender: TObject);
@@ -126,6 +138,18 @@ type
       Shift: TShiftState; X, Y: Integer);
     procedure N22Click(Sender: TObject);
     procedure N23Click(Sender: TObject);
+    procedure OpenFileDialogTypeChange(Sender: TObject);
+    procedure Origin1Click(Sender: TObject);
+    procedure N24Click(Sender: TObject);
+    procedure SGStatsMouseMove(Sender: TObject; Shift: TShiftState; X,
+      Y: Integer);
+    procedure Origin2Click(Sender: TObject);
+    procedure ChartOutMouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure ChartOutMouseUp(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure ChartOutMouseLeave(Sender: TObject);
+    procedure N26Click(Sender: TObject);
   private
     { Private declarations }
     procedure UpdateNums();
@@ -160,6 +184,7 @@ var
   GridComboN: TComboBox;
   mFrom,mTo : integer;
   TraceChart: boolean;
+  MarkDrag : TMarkDrag;
   isVLEdragging: boolean;
   //кривой избыточный костыль, но так понятнее, где
   //таскание и его проверки выглядят оптимальнее
@@ -169,6 +194,8 @@ var
   //------------------------------
   //-------Буферные переменные----
   statTypeData: string;
+  //------------------------------
+  HRow,HCol : integer;
 
 implementation
 
@@ -203,8 +230,6 @@ try
      line:=TFastLineSeries.Create(nil);
      line.Clear;
      line.Title:=iCurveInfo.AttributeText;
-     line.LinePen.Color:=NextColor;
-     NextColor:=GenerateColor(NextColor);
      for j:=0 to Length(iCurveInfo.PointsData.XValues)-1 do
       begin
         x:=iCurveInfo.PointsData.XValues[j];
@@ -217,6 +242,8 @@ try
      line.Tag:=s_tag;
      Inc(s_tag);
      line.ParentChart:=ChartOut;
+     if (line.Color=clWhite) then line.Color:=clBlack;
+     if (line.Color=clBlack) and (line.Tag>0) then line.Color:=GenerateColor(line.Color);
     end;
    //---------------------------------------------------
   end;
@@ -243,6 +270,7 @@ end;
 //----------------------Combo handlers-----------------------------------------
 procedure TFrmMAIN.ComboNChange(Sender: TObject);
 begin
+ if (PeakList.Count=0) then Exit; 
  SGStats.Cells[0,SGStats.RowCount-1]:=GridComboN.Items[GridComboN.ItemIndex];
  GridComboN.Visible:=false;
  SGStats.SetFocus;
@@ -250,6 +278,7 @@ end;
 
 procedure TFrmMAIN.ComboNExit(Sender: TObject);
 begin
+ if (PeakList.Count=0) then Exit;
  SGStats.Cells[0,SGStats.RowCount-1]:=GridComboN.Items[GridComboN.ItemIndex];
  GridComboN.Visible:=false;
  SGStats.SetFocus;
@@ -336,7 +365,8 @@ begin
  for i:=0 to PeakList.Count-1 do
   begin
    curp:=PeakList[i];
-   SGStats.Cells[i+1,0]:=curp^.Title;
+   //SGStats.Cells[i+1,0]:=curp^.Title;
+   SGStats.Cells[i+1,0]:='   ['+inttostr(i+1)+']';
    for j:=1 to SGStats.RowCount-2 do
     begin
      n_ln:=strtoint(SGStats.Cells[0,j]);
@@ -383,12 +413,18 @@ begin
 end;
 
 procedure TFrmMAIN.FindPeakValues();
+{
+  N.B. MarkList - набор НОМЕРОВ точек пиков, сохраненных как строки для удобства.
+  Не помню, зачем я так сделал. Но эта функция их них делает массивы координат и
+  сохраняет в PeakList, по которому все расчеты.
+}
 var
  i,j,k : integer;
  lst: TStringList;
  line: TFastLineSeries;
  poses: PCurvePeaks;
 begin
+   ClearPeakData;
    PeakList.Clear;
    for i:=0 to MarkList.Count-1 do
     begin
@@ -506,8 +542,68 @@ begin
      lst:=PPeakData(MarkList[i])^.MaxList;
      if lst=nil then continue;
      if (lst.IndexOf(inttostr(ValueIndex))<>-1) then
-       MarkText:=floattostr(Round(Sender.YValue[ValueIndex]));
+       MarkText:={floattostrf(Sender.XValue[ValueIndex],ffGeneral,5,3) +#13#10+}
+       floattostr(Round(Sender.YValue[ValueIndex]));
     end;
+  end;
+end;
+
+procedure TFrmMAIN.OpenFileDialogTypeChange(Sender: TObject);
+begin
+ Assert((OpenFileDialog.FilterIndex>0) and (OpenFileDialog.FilterIndex<3));
+end;
+
+procedure TFrmMAIN.Origin1Click(Sender: TObject);
+var
+ i,j : integer;
+ f : TextFile;
+ curp: PCurvePeaks;
+begin
+ if PeakList.Count=0 then Exit;
+ SaveDataDialog.FileName:='PeaksForOrigin.txt';
+ if (SaveDataDialog.Execute) then
+  begin
+   AssignFile(f,SaveDataDialog.FileName);
+   Rewrite(f);
+   Write(f,'lambda');
+   for i:=0 to PeakList.Count-1 do
+     Write(f,#9,'I',i+1);
+   Writeln(f);
+   curp:=PeakList[0];
+   for j:=0 to High(curp^.points)-1 do
+    begin
+     Write(f,curp^.points[j].x:5:2);
+     for i:=0 to PeakList.Count-1 do
+      begin
+       curp:=PeakList[i];
+       Write(f,#9,curp^.points[j].y:10:4);
+      end;
+     Writeln(f);
+     curp:=PeakList[0];
+    end;
+   CloseFile(f);
+  end
+ else MessageDlg('Сохранение не произведено!',mtInformation,[mbOK],0);
+end;
+
+procedure TFrmMAIN.Origin2Click(Sender: TObject);
+var
+ i,j : integer;
+ f: TextFile;
+begin
+ SaveDataDialog.FileName:='Stats.txt';
+ if SaveDataDialog.Execute then
+  begin
+   AssignFile(f,SaveDataDialog.FileName);
+   Rewrite(f);
+   for i:= 0 to SGStats.RowCount - 2 do
+    begin
+      for j := 0 to SGStats.ColCount - 3 do
+       Write(f,SGStats.Cells[j,i],#9);
+      Write(f,SGStats.Cells[SGStats.ColCount - 2,i]);
+      Writeln(f);
+    end;
+   CloseFile(f);
   end;
 end;
 
@@ -523,8 +619,6 @@ begin
  line:=TFastLineSeries.Create(nil);
  line.Clear;
  line.Title:=ExtractFileName(filename);
- line.LinePen.Color:=NextColor;
- NextColor:=GenerateColor(NextColor);
  Reset(f);
  while (not Eof(f) )  do
   begin
@@ -539,6 +633,8 @@ begin
  Inc(s_tag);
  CloseFile(f);
  line.ParentChart:=ChartOut;
+ if (line.Color=clWhite) then line.Color:=clBlack;
+ if (line.Color=clRed) and (line.Tag>0) then line.Color:=GenerateColor(line.Color);
  ChartOut.Repaint;
 end;
 
@@ -558,11 +654,14 @@ begin
 end;
 
 procedure TFrmMAIN.N7Click(Sender: TObject);
+var
+ path: string;
 begin
- if not FileExists(CHMHelpFile) then
-  MessageDlg('TODO: впишите что хотите, или что надо',mtInformation,[mbOK],0)
+ path:=GetCurrentDir+CHMHelpFile;
+ if not FileExists(path) then
+  MessageDlg('Запуск из программы не удался, откройте прилагающийся файл справки вручную',mtInformation,[mbOK],0)
  else
-  ShellExecute(0,'open',PChar(CHMHelpFile),nil,nil,SW_SHOWNORMAL);
+  ShellExecute(0,'open',PChar(path),nil,nil,SW_SHOWNORMAL);
 end;
 
 procedure TFrmMAIN.N8Click(Sender: TObject);
@@ -640,13 +739,19 @@ begin
  VLEdrag:=vleNone;
  vlePrevPos:=-1;
  NAddStats:=0;
+ HRow:=0;
+ HCol:=0;
+ //---------------
+ MarkDrag.in_process:=false;
+ MarkDrag.ser_id:=-1;
+ MarkDrag.mark_id:=-1;
 end;
 
 procedure TFrmMAIN.N3Click(Sender: TObject);
 begin
  if OpenFileDialog.Execute then
   begin
-   ClearMarkData;
+   N24.Click;
    ChartOut.SeriesList.Clear;
    if (OpenFileDialog.FilterIndex=1) then LoadDataFromTxt(OpenFileDialog.FileName)
    else LoadDataFromSpectrs(OpenFileDialog.FileName);
@@ -686,7 +791,9 @@ begin
  ChartOut.SeriesList.Clear;
  ChartOut.Repaint;
  s_tag:=0;
+ NAddStats:=0;
  ClearMarkData;
+ StatusMain.Panels[1].Text:='Спектров загружено: 0';
 end;
 
 procedure TFrmMAIN.N11Click(Sender: TObject);
@@ -696,6 +803,7 @@ begin
    ClearMarkData;
    if (OpenFileDialog.FilterIndex=1) then   LoadDataFromTxt(OpenFileDialog.FileName)
    else LoadDataFromSpectrs(OpenFileDialog.FileName);
+   if SGStats.Cells[1,0]<>'' then N14.Click;
    UpdateSpectrStats;
    StatusMain.Panels[1].Text:='Спектров загружено: '+inttostr(ChartOut.SeriesCount);
   end
@@ -839,6 +947,8 @@ var
  f : TextFile;
  curp: PCurvePeaks;
 begin
+ if PeakList.Count=0 then Exit;
+ SaveDataDialog.FileName:='Peaks.txt';
  if (SaveDataDialog.Execute) then
   begin
    AssignFile(f,SaveDataDialog.FileName);
@@ -883,7 +993,7 @@ begin
  if N18.Caption='Скрыть статистику' then N18.Caption:='Показать статистику'
   else N18.Caption:='Скрыть статистику';
  Panel2.Visible:= not Panel2.Visible;
- Splitter1.Visible:=not Splitter1.Visible;
+ Separator.Visible:=not Separator.Visible;
 end;
 
 procedure TFrmMAIN.SGStatsSelectCell(Sender: TObject; ACol, ARow: Integer;
@@ -955,13 +1065,77 @@ begin
     end;
 end;
 
+procedure TFrmMAIN.ChartOutMouseDown(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+var
+ i,id: integer;
+begin
+ for i := 0 to ChartOut.SeriesCount - 1 do
+   begin
+     id:=ChartOut.Series[i].Marks.Clicked(X,Y);
+     if (id<>-1) then
+      begin
+        MarkDrag.ser_id:=i;
+        MarkDrag.mark_id:=id;
+        MarkDrag.in_process:=true;
+        StatusMain.Panels[2].Text:='mark moving';
+      end;
+   end;
+end;
+
+procedure TFrmMAIN.ChartOutMouseLeave(Sender: TObject);
+begin
+ ChartOutMouseUp(Sender,mbLeft,[],0,0);
+end;
+
 procedure TFrmMAIN.ChartOutMouseMove(Sender: TObject; Shift: TShiftState;
   X, Y: Integer);
 var
  i: integer;
  xval,yval: double;
+ //------------------
+ lst: TStringList;
+ i_mrk : integer;
+ ms_x: double;
+ line: TFastLineSeries;
+ new_m: integer;
 begin
- if (ChartOut.SeriesCount=0) or (not TraceChart) then Exit;
+  if (ChartOut.SeriesCount=0) then Exit;
+ //-------------------------------------
+ if MarkDrag.in_process then
+  begin
+    ChartOut.Repaint;
+    line:=TFastLineSeries(ChartOut.Series[MarkDrag.ser_id]);
+   // if (X>=line.XValues.First) {and (X<=line.XValues.Last)} then
+  //   begin
+      lst:=PPeakData(MarkList[MarkDrag.ser_id])^.MaxList;
+      if lst<>nil then
+       begin
+         i_mrk:=lst.IndexOf(inttostr(MarkDrag.mark_id));
+         if (i_mrk<>-1) then
+          begin
+           ms_x:=line.XScreenToValue(X);
+           new_m:=strtoint(lst[i_mrk]);
+           if (ms_x>line.XValue[new_m]) then
+             while (ms_x>line.XValue[new_m]) do Inc(new_m)
+           else
+             while (ms_x<line.XValue[new_m]) do Dec(new_m);
+           lst[i_mrk]:=inttostr(new_m);
+           MarkDrag.mark_id:=new_m;
+          end;
+       end;
+       with ChartOut.Canvas do
+        begin
+         Pen.Color:=clRed;
+         Pen.Style:=psDot;
+         Pen.Width:=1;
+         Line(X,ChartOut.ChartRect.Top,X,ChartOut.ChartRect.Bottom);
+        end;
+  //     ChartOut.Repaint;
+  //   end;
+  end;
+ //-------------------------------------
+ if (not TraceChart) then Exit;
  ChartOut.Repaint;
  for i:=0 to ChartOut.SeriesCount-1 do
   begin
@@ -975,10 +1149,21 @@ begin
        Line(ChartOut.ChartRect.Left,Y,ChartOut.ChartRect.Right,Y);
        Line(X,ChartOut.ChartRect.Top,X,ChartOut.ChartRect.Bottom);
        ChartOut.Series[i].GetCursorValues(xval,yval);
-       TextOut(X+7,Y-TextHeight('X')-3,'X= '+FloatToStrF(xval,ffGeneral,6,2)+'  Y= '+inttostr(Round(yval)));
+       TextOut(X+7,Y-TextHeight('X')-3,'X= '+FloatToStrF(xval,ffGeneral,6,2)+'  Y= '+{FloatToStrF(yval,ffGeneral,5,0));} inttostr(Round(yval)));
       end;
     end;
   end;
+end;
+
+procedure TFrmMAIN.ChartOutMouseUp(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+begin
+  MarkDrag.ser_id:=-1;
+  MarkDrag.mark_id:=-1;
+  MarkDrag.in_process:=false;
+  StatusMain.Panels[2].Text:='';
+  ChartOut.Repaint;
+  FindPeakValues;
 end;
 
 procedure TFrmMAIN.N21Click(Sender: TObject);
@@ -1060,6 +1245,30 @@ begin
 end;
 
 
+procedure TFrmMAIN.SGStatsMouseMove(Sender: TObject; Shift: TShiftState; X,
+  Y: Integer);
+var
+ r,c,spn : integer;
+ title: string;
+begin
+ SGStats.MouseToCell(X, Y, C, R);
+ if ((HCol <> c) or (HRow<>r)) then
+ begin
+  HRow:=r; HCol:=c;
+  SGStats.Hint:='';
+  Application.CancelHint;
+  if (R=0) and (C in [1..SGStats.ColCount-NAddStats-1])  then
+   begin
+     title:=Trim(SGStats.Cells[C,R]);
+     Delete(title,1,1);
+     Delete(title,length(title),1);
+     spn:=StrToIntDef(title,-1)-1;
+     if (ChartOut.SeriesCount=0)  or (spn>=ChartOut.SeriesCount) then Exit;
+     if spn>=0 then SGStats.Hint:=ChartOut.Series[spn].Title;
+  end;
+ end;
+end;
+
 function ComparePairIntegers(Item1 : Pointer; Item2 : Pointer) : Integer;
  var
    num1, num2 : PSortPair;
@@ -1118,6 +1327,28 @@ procedure TFrmMAIN.N23Click(Sender: TObject);
 begin
  ChartOut.View3D:=not ChartOut.View3D;
  N23.Checked:=not ChartOut.View3D;
+end;
+
+procedure TFrmMAIN.N24Click(Sender: TObject);
+var
+ i,j: integer;
+begin
+ ClearPeakData;
+ N12.Click;
+ mFrom:=1;
+ mTo:=ValueListSpectr.RowCount-1;
+ ValueListSpectr.Invalidate;
+ SGStats.RowCount:=2;
+ SGStats.ColCount:=5;
+ for j := 0 to 1 do
+  for i := 0 to 4 do
+   SGStats.Cells[i,j]:='';
+ SGStats.Cells[0,0]:=' N линии';
+end;
+
+procedure TFrmMAIN.N26Click(Sender: TObject);
+begin
+ FrmVAH.Show;
 end;
 
 end.

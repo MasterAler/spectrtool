@@ -6,7 +6,7 @@ interface
     ‘ормат данных и принципы работы с ними вз€ты из исходников разработчиков
     фирмы LOMOPHOTONICS, предоставивших свои классы на —++, реализующие работу
     с их собственным форматом файлов. ≈сли что-то в организации чтени€-записи
-    либо типах данных кажетс€ странным - дело, скорее всего в первоисточнике :)) 
+    либо типах данных кажетс€ странным - дело, скорее всего, в первоисточнике :)) 
 }
 
 {
@@ -92,7 +92,7 @@ type
   procedure Read(handle: Cardinal);
   constructor Create;
   destructor Destroy; override;
-  function ToString():string;
+  function ToString():string; override;
  end;
 
  TAttribs=class(TInterfacedObject,ICurveReader)
@@ -459,9 +459,9 @@ var
  aText: string;
 begin
  aText:='';
- aText:=aText+StringAttribs[10].ToString()+'  ƒата:';
- aText:=aText+StringAttribs[11].ToString()+'  ¬рем€:';
- aText:=aText+StringAttribs[12].ToString();
+ if (StringAttribs[10]<>nil) then aText:=aText+StringAttribs[10].ToString()+'  ƒата:';
+ if (StringAttribs[11]<>nil) then  aText:=aText+StringAttribs[11].ToString()+'  ¬рем€:';
+ if (StringAttribs[12]<>nil) then  aText:=aText+StringAttribs[12].ToString();
  Result:=aText;
 end;
 

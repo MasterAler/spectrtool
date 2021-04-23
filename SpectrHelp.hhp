@@ -1,7 +1,17 @@
 [OPTIONS]
-Contents file=C:\Users\asus\Desktop\Spectr\Table of Contents.hhc
+Compatibility=1.1 or later
+Compiled file=SpectrHelp.chm
+Contents file=Table of Contents.hhc
+Default topic=1.html
+Display compile progress=No
+Language=0x419 Русский (Россия)
+
 
 [FILES]
-C:\Users\asus\Desktop\Spectr\1.html
-C:\Users\asus\Desktop\Spectr\2.html
-C:\Users\asus\Desktop\Spectr\3.html
+1.html
+2.html
+3.html
+4.html
+
+[INFOTYPES]
+
